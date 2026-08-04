@@ -4,10 +4,28 @@ A desktop tool for backing up, organising and restoring local *Diablo II:
 Resurrected* characters. PowerShell + WPF, no installation, no server, no
 background process.
 
-![Main window](screenshots/main-window.jpg)
+![Main window](screenshots/main-window.png)
 
 Works with **offline characters only**. Online characters live on Blizzard's
 servers and cannot be backed up from outside.
+
+## Open source, and meant to be read
+
+The entire program is **one PowerShell file in plain text**. Nothing is compiled,
+nothing is obfuscated, nothing is minified. Before you let it near your save games
+you can read every line it will execute — and you do not need to be a programmer
+for the parts that matter: search the file for `Remove-Item` and you have found all
+five places where anything is ever deleted.
+
+That is not a side effect of how it was built; it is the reason it was built this
+way. The same thinking runs through the whole design: backups are stored as
+ordinary folders instead of archives, so you can reach them with Explorer alone,
+and every backup carries an `_INFO.txt` explaining how to restore it by hand
+without this program.
+
+The [transparency section](#transparency-privacy-antivirus-and-your-account) below
+answers what people ask first: does it phone home, does it touch the game, and can
+it get an account banned.
 
 ## What it does
 
@@ -199,7 +217,10 @@ Green under Windows PowerShell 5.1 **and** PowerShell 7.4.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+**MIT** — see [LICENSE](LICENSE). Free software in the plain sense: use it, change
+it, pass it on, build something else from it. The only condition is that the
+copyright notice travels along. It comes with no warranty, which is the other half
+of "free".
 
 This project is not affiliated with, endorsed by or reviewed by Blizzard
 Entertainment. *Diablo II: Resurrected* and all related names are trademarks of
