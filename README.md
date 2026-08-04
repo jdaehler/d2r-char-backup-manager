@@ -31,8 +31,10 @@ Die Datei enthält echte Umlaute und **muss als UTF-8 mit BOM** gespeichert blei
 sonst liest Windows PowerShell 5.1 sie als ANSI und zerlegt jeden Umlaut. Nach
 jeder Bearbeitung mit einem Werkzeug, das den BOM verwirft, wieder setzen:
 
+Im Projektordner ausführen:
+
 ```bash
-powershell -c "$f='P:\Cowork\D2R-Char-Backup-Manager\D2RCharBackupManager.ps1'; [IO.File]::WriteAllText($f,[IO.File]::ReadAllText($f),(New-Object Text.UTF8Encoding($true)))"
+powershell -c "$f='.\D2RCharBackupManager.ps1'; [IO.File]::WriteAllText((Resolve-Path $f),[IO.File]::ReadAllText((Resolve-Path $f)),(New-Object Text.UTF8Encoding($true)))"
 ```
 
 ## Erste Einrichtung

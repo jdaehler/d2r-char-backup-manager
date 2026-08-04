@@ -1,6 +1,9 @@
 ﻿$ErrorActionPreference = 'Stop'
 $enc = New-Object System.Text.UTF8Encoding($true)
-$src = [System.IO.File]::ReadAllText('P:\Cowork\D2R-Char-Backup-Manager\D2RCharBackupManager.ps1')
+# Eigenen Ordner ableiten statt hart codieren: der Projektordner wird
+# gelegentlich umbenannt oder verschoben, und ein fester Pfad braeche dann
+# kommentarlos.
+$src = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'D2RCharBackupManager.ps1'))
 
 $probe = @'
 
@@ -37,10 +40,18 @@ try { $enc2.Save($fs) } finally { $fs.Dispose() }
 $d = Join-Path $env:TEMP 'render-app'
 if (Test-Path $d) { [System.IO.Directory]::Delete($d, $true) }
 New-Item -ItemType Directory -Path $d -Force | Out-Null
+# Zwei Fenster muessen weg, nicht nur eines: das Hauptfenster UND die
+# Startsperre mit dem Haftungshinweis, die davor laeuft. Ohne den zweiten
+# Austausch geht bei jedem Rendern ein Dialog auf und wartet auf einen Klick.
+$ohneFenster = $src.Replace('[void]$win.ShowDialog()', '# aus').
+                    Replace('if (Confirm-Disclaimer) {', 'if ($true) {')
 [System.IO.File]::WriteAllText((Join-Path $d 'D2RCharBackupManager.ps1'),
-    $src.Replace('[void]$win.ShowDialog()', '# aus') + $probe, $enc)
+    $ohneFenster + $probe, $enc)
+# Backup-Ordner bewusst im Temp: das Rendern soll niemandes echte Sicherungen
+# anfassen, auch nicht lesend. Wer die eigenen Snapshots im Bild sehen will,
+# traegt hier seinen Backup-Ordner ein.
 @{ SavePath   = (Join-Path $env:USERPROFILE 'Saved Games\Diablo II Resurrected')
-   BackupPath = 'P:\Cowork\D2R-Backups'
+   BackupPath = (Join-Path $d 'backup')
    Language   = 'de' } | ConvertTo-Json | Set-Content (Join-Path $d 'config.json') -Encoding UTF8
 
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File (Join-Path $d 'D2RCharBackupManager.ps1') 2>&1

@@ -1,5 +1,4 @@
-# Hausregel aus P:\Cowork\CLAUDE.md, Abschnitt "Windows-Stolpersteine":
-# ohne diese Datei erzeugt der erste Commit vom anderen Rechner aus einen
+# Ohne diese Datei erzeugt der erste Commit von einem anderen Rechner aus einen
 # Riesen-Diff, in dem jede Zeile als geaendert gilt.
 * text=auto eol=lf
 
