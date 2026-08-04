@@ -19,7 +19,8 @@ hinweis*.png
 Thumbs.db
 desktop.ini
 
-# Hinweis: _versionen/ ist bewusst NICHT ausgeschlossen. Die Ordner sind die
-# Rückfahrkarten zu früheren Ständen und funktionieren ohne Git - genau darum
-# gibt es sie. Wer sie später doch für überflüssig hält, weil die Historie im
-# Repository steht, nimmt sie hier auf.
+# Quellstände früherer Versionen. Bleiben lokal liegen als Rückweg, der ohne
+# Git funktioniert - im Repository wären sie überflüssig, weil die Historie
+# dasselbe leistet. Fertige Pakete gehören als GitHub-Release ans Tag, nicht
+# als Datei in den Verlauf.
+_versionen/

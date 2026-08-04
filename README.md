@@ -47,15 +47,14 @@ standardmäßig als Unterordner `Backups` neben dem Programm. Abweichungen lande
 Die Versionsnummer steht in `$script:AppVersion` und erscheint im Fenstertitel
 sowie rechts in der Statuszeile. Bei Änderungen mitpflegen.
 
-| Version | Stand |
-|---|---|
-| 1.0 | Sichern mit Mehrfachauswahl und komplettem Ordner, Wiederherstellen mit Umbenennen, Labels/Tags/Notizen, Suche und Filter, gemerkte Sortierung, Duplikaterkennung, Ordner-Ablage mit `_INFO.txt`, Oberfläche deutsch/englisch mit Erkennung der Windows-Sprache, Symbolknöpfe, Deploy-Paket |
-| 1.2 | Haftungshinweis beim ersten Start, muss bestätigt werden, sonst startet das Programm nicht (`$script:DisclaimerVersion`, Bestätigung in `config.json`). Gemerkte Ansicht: Fenstergröße, Breite der linken Hälfte, Spaltenbreiten beider Listen, beide Ausblenden-Haken. Knopf „Ansicht zurücksetzen" in den Einstellungen |
-| 1.1 | Charaktere parken: Dateisatz nach `_Projekte\<Projekt>\` verschieben, dadurch aus der D2R-Charakterauswahl heraus und per Knopf wieder hinein. Geparkte stehen blass/kursiv mit Projekt-Spalte in der Liste. Pflicht-Snapshot vor jedem Parken, blockierende D2R-Prüfung vor **und** nach dem Verschieben |
+Was sich je Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md) — bewusst
+nur dort, damit die Liste nicht an zwei Stellen auseinanderläuft.
 
-Der Quellstand jeder Version liegt unter `_versionen\<Version>\` — komplett, mit
-`_INFO.txt`, die das Zurückgehen erklärt. Dafür reicht Zurückkopieren, das Programm
-braucht keine Installation.
+Der Quellstand jeder Version liegt zusätzlich lokal unter `_versionen\<Version>\` —
+komplett, mit `_INFO.txt`, die das Zurückgehen erklärt. Dafür reicht Zurückkopieren,
+das Programm braucht keine Installation. Diese Ordner sind **nicht** im Repository:
+die Historie leistet dasselbe, und fertige Pakete gehören als Release ans Tag statt
+als Datei in den Verlauf. Sie bleiben liegen, weil sie auch ohne Git funktionieren.
 
 ## Stand
 
