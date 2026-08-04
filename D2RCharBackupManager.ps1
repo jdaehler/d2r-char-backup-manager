@@ -1661,6 +1661,8 @@ $script:TextsEn = @{
     'Ich habe diesen Hinweis gelesen und verstanden und benutze das Programm auf eigene Verantwortung.' = 'I have read and understood this notice and use the program on my own responsibility.'
     'Einverstanden, Programm starten' = 'I agree, start the program'
     'Über' = 'About'; 'Schließen' = 'Close'
+    'Das Programm läuft bereits.' = 'The program is already running.'
+    'Ein zweites Fenster würde dieselbe Verwaltungsdatei beschreiben, und die Beschriftungen der anderen Instanz gingen verloren. Bitte das vorhandene Fenster benutzen.' = 'A second window would write to the same index file, and the labels of the other instance would be lost. Please use the window that is already open.'
     'Hinweis, Lizenz und Anleitung' = 'Notice, licence and instructions'
     'Anleitung öffnen' = 'Open instructions'
     'Lizenz' = 'Licence'
@@ -1899,6 +1901,49 @@ function ConvertTo-SnapshotRow($Record) {
 
 $script:Config = Import-Config
 $script:Index  = $null
+
+# ---------------------------------------------------------------------------
+# Nur eine Instanz gleichzeitig
+# ---------------------------------------------------------------------------
+# Zwei laufende Fenster schreiben beide in dieselbe index.json. Wer zuletzt
+# speichert, gewinnt - Labels, Tags und Notizen der anderen Instanz waeren weg.
+# Die Sicherungen selbst blieben heil, aber ihre Beschriftungen sind Handarbeit
+# und sollen nicht still verschwinden.
+#
+# Bewusst ohne "Global\": der Konflikt entsteht zwischen zwei Fenstern desselben
+# Benutzers. Zwei verschiedene Benutzer haben ohnehin getrennte Konfigurationen
+# und Backup-Ordner und sollen sich nicht gegenseitig aussperren.
+function Enter-EinzelInstanz {
+    $script:Instanz = New-Object System.Threading.Mutex($false, 'D2RCharBackupManager.Einzelinstanz')
+    try {
+        # WaitOne(0): sofort zurueckkommen statt zu warten.
+        return $script:Instanz.WaitOne(0)
+    } catch [System.Threading.AbandonedMutexException] {
+        # Die Vorgaengerinstanz ist abgestuerzt, ohne freizugeben. Der Mutex
+        # gehoert damit uns - das ist kein Fehler, sondern der Normalfall nach
+        # einem Absturz.
+        return $true
+    }
+}
+
+# Muss VOR jedem Neustart laufen (Sprachwechsel, Ansicht zuruecksetzen), sonst
+# sperrt sich das Programm beim Wiederanlauf selbst aus: der neue Prozess
+# startet, waehrend der alte den Mutex noch haelt.
+function Exit-EinzelInstanz {
+    if ($script:Instanz) {
+        try { $script:Instanz.ReleaseMutex() } catch { }
+        $script:Instanz.Dispose()
+        $script:Instanz = $null
+    }
+}
+
+if (-not (Enter-EinzelInstanz)) {
+    [void][System.Windows.MessageBox]::Show(
+        (T 'Das Programm läuft bereits.') + "`n`n" +
+        (T 'Ein zweites Fenster würde dieselbe Verwaltungsdatei beschreiben, und die Beschriftungen der anderen Instanz gingen verloren. Bitte das vorhandene Fenster benutzen.'),
+        $script:AppName, 'OK', 'Information')
+    return
+}
 
 $win = ConvertFrom-Xaml $MainXaml
 
@@ -2863,10 +2908,19 @@ if (Confirm-Disclaimer) {
     [void]$win.ShowDialog()
 }
 
-# Sprachwechsel: mit derselben PowerShell-Version neu starten, mit der wir laufen.
+# Sprachwechsel und "Ansicht zurücksetzen": mit derselben PowerShell-Version neu
+# starten, mit der wir laufen.
 if ($script:RestartRequested -and $script:ScriptPath) {
+    # ZUERST freigeben, dann starten. Andernfalls trifft der neue Prozess auf den
+    # noch gehaltenen Mutex, haelt sich selbst fuer eine zweite Instanz und
+    # beendet sich - der Sprachwechsel wuerde das Programm schliessen statt es
+    # neu zu oeffnen.
+    Exit-EinzelInstanz
+
     $exe = (Get-Process -Id $PID).Path
     Start-Process -FilePath $exe -ArgumentList @(
         '-NoProfile','-ExecutionPolicy','Bypass','-Sta','-WindowStyle','Hidden','-File',"`"$script:ScriptPath`""
     )
+} else {
+    Exit-EinzelInstanz
 }

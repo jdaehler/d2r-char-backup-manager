@@ -93,7 +93,7 @@ unangetastet, zu jedem der Pflicht-Snapshot im Backup, `_INFO.txt` geschrieben.
 Bei einem Charakter wanderten auch `.ctlo`/`.keyo` mit — richtig so, das sind seine
 Tastenbelegungen, und `Get-CharacterFiles` greift über den Basisnamen.
 
-`Test-Sandbox.ps1` deckt 92 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 97 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen) und läuft grün
 unter Windows PowerShell 5.1 **und** PowerShell 7.4.
@@ -112,6 +112,33 @@ setzt den Fokus bewusst auf einen Knopf und schreibt das Ergebnis als PNG nach
 `%TEMP%\...\ansicht.png`. Damit lassen sich Farben, Abstände und Umbrüche
 beurteilen, ohne die App zu öffnen — so wurde der fehlende Auswahl-Kontrast gefunden.
 
+### Demo-Umgebung zum Screenshots machen
+
+`Demo-Umgebung.ps1` baut unter `%TEMP%\D2R-Demo` eine vollständige, startbare
+Fassung: Programmkopie, 16 erfundene Charaktere, 4 geparkte in zwei Projekten,
+17 fertige Sicherungen mit Labels und Notizen, eigene `config.json`. Ein
+Doppelklick auf `Start Demo.cmd` öffnet das echte Fenster — nur eben mit
+ausgedachten Daten.
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Demo-Umgebung.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "Demo-Umgebung.ps1" -DryRun
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Demo-Umgebung.ps1" -Deutsch
+```
+
+Damit entstehen Bilder vom laufenden Programm — schärfer und mit echten
+Fensterrahmen, anders als beim Rendern in den Speicher.
+
+Drei Dinge sind dabei bewusst so gebaut:
+
+- Die Programmkopie bekommt einen **eigenen Mutex-Namen** (`…Demo`). Sonst
+  ließe sich die Demo nicht starten, solange das echte Programm offen ist.
+- Der **Haftungshinweis ist vorab bestätigt**, sonst stünde er im Bild. Die
+  Fassungsnummer wird aus der Programmdatei gelesen, damit sie nicht veraltet.
+- Das Skript weigert sich, in den Projektordner oder unter `Saved Games` zu
+  schreiben, und legt vorher den Zielordner an — es löscht ihn, also nie auf
+  etwas zeigen lassen, das bleiben soll. `-DryRun` zeigt alles vorher an.
+
 ### Screenshots fürs README
 
 Die Bilder in `screenshots\` sind **aus erfundenen Charakteren** erzeugt, nicht aus
@@ -120,9 +147,11 @@ Projektnamen und Sicherungszeiten. Beim Neuerzeugen daran denken: gerendert wird
 gegen einen Wegwerf-Ordner unter `%TEMP%` mit ausgedachten Namen und englischer
 Oberfläche (`Language = 'en'` in der Wegwerf-`config.json`).
 
-Beim Rendern müssen **zwei** Fenster unterdrückt werden, nicht nur eines: das
-Hauptfenster *und* die Startsperre mit dem Haftungshinweis, die davor läuft.
-Sonst wartet das Skript auf einen Klick.
+Beim Rendern müssen **drei** Stellen unterdrückt werden, nicht nur das Hauptfenster:
+zusätzlich die Startsperre mit dem Haftungshinweis und die Einzelinstanz-Prüfung.
+Beide laufen davor und machen sonst je ein Fenster auf, das auf einen Klick wartet —
+und die Einzelinstanz-Prüfung würde das Rendern abbrechen, sobald die App gerade
+offen ist. Genau dann will man aber oft rendern.
 
 ### Dateien im Ordner
 
@@ -135,10 +164,11 @@ Sonst wartet das Skript auf einen Klick.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 92 Prüfungen gegen eine Wegwerf-Sandbox |
+| `Test-Sandbox.ps1` | 97 Prüfungen gegen eine Wegwerf-Sandbox |
 | `_versionen\<Version>\` | Quellstand je Version zum schnellen Zurückgehen |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
+| `Demo-Umgebung.ps1` | startbare Demo mit erfundenen Daten, zum Screenshots machen |
 | `config.json` | persönliche Pfade und Sprache, **nicht** im Deploy-Paket |
 | `LICENSE` | MIT, liegt im Deploy-Paket und wird im Über-Dialog angezeigt |
 | `.gitignore` / `.gitattributes` | für den späteren Git-Umzug: hält `config.json` und Backups draußen, verbietet Git jede Umwandlung an der `.ps1` (BOM) |

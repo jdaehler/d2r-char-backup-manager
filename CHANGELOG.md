@@ -26,6 +26,11 @@ in the window title and on the right of the status bar.
   Sorting is unaffected: it never used the formatted text.
 - The test suite checks that every visible string has an English counterpart, so a
   forgotten translation fails a test run instead of surfacing in the program.
+- **Only one window at a time.** Two running instances would both write the same
+  `index.json`, and whichever saved last would silently drop the other one's
+  labels, tags and notes. A second start now says so and stops. The lock is
+  released before the restart that a language switch or "reset view" performs,
+  otherwise the program would lock itself out.
 
 ## 1.1 — 2026-08-04
 

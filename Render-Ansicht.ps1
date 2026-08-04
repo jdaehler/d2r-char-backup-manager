@@ -40,11 +40,14 @@ try { $enc2.Save($fs) } finally { $fs.Dispose() }
 $d = Join-Path $env:TEMP 'render-app'
 if (Test-Path $d) { [System.IO.Directory]::Delete($d, $true) }
 New-Item -ItemType Directory -Path $d -Force | Out-Null
-# Zwei Fenster muessen weg, nicht nur eines: das Hauptfenster UND die
-# Startsperre mit dem Haftungshinweis, die davor laeuft. Ohne den zweiten
-# Austausch geht bei jedem Rendern ein Dialog auf und wartet auf einen Klick.
+# DREI Stellen muessen weg, nicht nur das Hauptfenster: die Startsperre mit dem
+# Haftungshinweis und die Einzelinstanz-Pruefung laufen davor und machen sonst je
+# ein Fenster auf, das auf einen Klick wartet. Die Einzelinstanz-Pruefung wuerde
+# das Rendern ausserdem abbrechen, sobald die App gerade offen ist - und genau
+# dann will man oft rendern.
 $ohneFenster = $src.Replace('[void]$win.ShowDialog()', '# aus').
-                    Replace('if (Confirm-Disclaimer) {', 'if ($true) {')
+                    Replace('if (Confirm-Disclaimer) {', 'if ($true) {').
+                    Replace('if (-not (Enter-EinzelInstanz)) {', 'if ($false) {')
 [System.IO.File]::WriteAllText((Join-Path $d 'D2RCharBackupManager.ps1'),
     $ohneFenster + $probe, $enc)
 # Backup-Ordner bewusst im Temp: das Rendern soll niemandes echte Sicherungen

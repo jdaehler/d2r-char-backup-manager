@@ -221,6 +221,33 @@ $fullOrdner = Join-Path $backup $full2.pfad
 Check "Projektordner nicht im Vollbackup" (-not (Test-Path (Join-Path $fullOrdner '_Projekte')))
 Check "geparkte Datei nicht im Vollbackup" (@(Get-ChildItem $fullOrdner -Recurse -File | Where-Object { $_.Name -eq 'TestBarb.map' }).Count -eq 0)
 
+"--- Einzelinstanz ---"
+# Der Mutex verhindert, dass zwei Fenster dieselbe index.json beschreiben.
+Check "erste Instanz bekommt die Sperre" (Enter-EinzelInstanz)
+$script:InstanzErste = $script:Instanz
+
+# Zweiter Versuch im selben Prozess: WaitOne(0) liefert sofort $true, weil ein
+# Mutex reentrant ist. Deshalb aus einem eigenen Prozess pruefen - nur so ist der
+# Test aussagekraeftig.
+$zweiter = powershell.exe -NoProfile -Command @'
+$m = New-Object System.Threading.Mutex($false, 'D2RCharBackupManager.Einzelinstanz')
+try { if ($m.WaitOne(0)) { 'frei' } else { 'belegt' } } catch { 'belegt' }
+'@
+Check "zweite Instanz wird abgewiesen" ("$zweiter".Trim() -eq 'belegt') $zweiter
+
+Exit-EinzelInstanz
+Check "nach dem Freigeben ist die Sperre weg" ($null -eq $script:Instanz)
+
+$dritter = powershell.exe -NoProfile -Command @'
+$m = New-Object System.Threading.Mutex($false, 'D2RCharBackupManager.Einzelinstanz')
+try { if ($m.WaitOne(0)) { 'frei' } else { 'belegt' } } catch { 'belegt' }
+'@
+Check "danach kann wieder gestartet werden" ("$dritter".Trim() -eq 'frei') $dritter
+
+# Genau das braucht der Neustart bei Sprachwechsel und "Ansicht zuruecksetzen":
+# ohne Freigabe vorher sperrte sich das Programm selbst aus.
+Check "Freigeben ist mehrfach gefahrlos" ($null -eq (Exit-EinzelInstanz))
+
 "--- Uebersetzungen ---"
 # Jeder Text, der im Programm sichtbar wird, braucht einen Eintrag in
 # $script:TextsEn. Fehlt einer, faellt die Oberflaeche an dieser Stelle still auf

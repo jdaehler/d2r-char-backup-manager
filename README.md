@@ -190,7 +190,7 @@ path.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-92 checks covering header parsing, backing up, restoring, renaming, the folder
+97 checks covering header parsing, backing up, restoring, renaming, the folder
 layout, stash behaviour, safety copies, deleting, parking and bringing back. They
 run against a throwaway sandbox under `%TEMP%` and never touch a real save folder.
 Green under Windows PowerShell 5.1 **and** PowerShell 7.4.
