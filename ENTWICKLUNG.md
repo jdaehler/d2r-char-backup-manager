@@ -192,8 +192,10 @@ Jeder Klick erzeugt einen eigenständigen Snapshot; überschrieben wird nie etwa
 ist `yyyyMMdd-HHmmss` plus 4 Zufallszeichen, mehrere Sicherungen in derselben Sekunde
 kollidieren also nicht. In der Liste stehen sie sekundengenau untereinander.
 
-Weil ein Charakter-Snapshot den Shared Stash enthält, kostet jeder rund **200 KB** —
-auch wenn sich nichts geändert hat. Deshalb vergleicht die App den Inhalt per SHA-256 und
+Jeder Charakter-Snapshot kostet Platz, auch wenn sich nichts geändert hat: über die
+72 vorhandenen gemessen im Schnitt **rund 100 KB**, Spanne 12 KB bis 430 KB. Den
+Ausschlag geben die Kartendateien (`.ma0`–`.ma3`), nicht der Shared Stash — der ist
+mit gut 8 KB kleiner als gedacht. Deshalb vergleicht die App den Inhalt per SHA-256 und
 schreibt in die Statuszeile, wenn eine Sicherung inhaltlich mit einer früheren identisch
 ist. Angelegt wird sie trotzdem; automatisch aufgeräumt wird **nichts**.
 

@@ -290,6 +290,70 @@ paths. Not strictly required (the program detects foreign paths and asks again),
 but cleaner. The backups themselves (`index.json`, `snapshots`) belong to each
 user and are not shared.
 
+## Transparency: privacy, antivirus and your account
+
+### It never goes online
+
+There is no network code in it at all: no requests, no downloads, no telemetry, no
+update check. Nothing about you or your characters leaves this machine.
+`config.json` with your paths stays next to the program.
+
+One thing to know: if you put the backup folder in a cloud — OneDrive, Dropbox —
+your save games end up there. That is your choice, not something the program does
+by itself.
+
+### It does not touch the game
+
+The only question it ever asks about *Diablo II: Resurrected* is whether it is
+running right now, so it can refuse to pull files out from under a running game. It
+never reads or writes memory, never hooks into anything, never starts or stops the
+game. It works on files and nothing else.
+
+### Can this get my account banned?
+
+Honest answer, in two halves.
+
+**It cannot reach online characters at all.** Ladder and other online characters
+live on Blizzard's servers; nothing on your disk represents them. This program
+works exclusively on the files of local, offline characters.
+
+**But restoring an old save is still a change to your save game.** Nobody can
+promise you what Blizzard makes of that. If you play online and care about your
+account, keep in mind that this tool is meant for your local characters, and that
+using it is your decision.
+
+### Why does my antivirus get nervous?
+
+Because it is a PowerShell script that copies files — malicious scripts use the
+same pattern. You cannot look harmless to a heuristic and still do the work.
+
+Better than any promise: **read it.** It is a single plain text file. Search for
+`Remove-Item` and you will find all five places where anything is deleted, or
+`Copy-Item` and `Move-Item` for every place files are moved.
+
+The program carries no digital signature, so Windows may warn about an unknown
+publisher. A certificate costs money every year — hard to justify for something
+given away for free.
+
+### Why does the launcher say `-ExecutionPolicy Bypass`?
+
+Windows does not run unsigned PowerShell scripts by default. The flag lifts that
+**for this one launch only**. It changes no setting, writes nothing to the registry
+and leaves the policy on your system as it was. Once the program closes, nothing of
+it stays active.
+
+### What it does to your disk
+
+Nothing is ever cleaned up automatically — on purpose, so nothing disappears behind
+your back. A character backup costs about **100 KB** on average; measured across 72
+real backups the range was 12 KB to 430 KB, depending on how many map files a
+character has. That is written every time you press the button, even when nothing
+changed. Backing up after every session, expect a few hundred megabytes over a
+year, and delete old backups yourself when you want the space.
+
+Every backup also records in its `_INFO.txt` which folder it came from. If you pass
+a backup folder on to someone, your Windows user name travels with it in that path.
+
 ## If something goes wrong
 
 | Problem | Cause |

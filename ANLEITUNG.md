@@ -285,6 +285,73 @@ persönlichen Pfade. Nötig ist das nicht (das Programm erkennt fremde Pfade und
 fragt neu), aber sauberer. Die Sicherungen selbst (`index.json`, `snapshots`)
 gehören dem jeweiligen Benutzer und werden nicht mitgegeben.
 
+## Transparenz: Datenschutz, Virenscanner und dein Konto
+
+### Das Programm geht nirgendwo ins Netz
+
+Es enthält überhaupt keinen Netzwerkcode: keine Abrufe, keine Downloads, keine
+Telemetrie, keine Update-Prüfung. Über dich und deine Charaktere verlässt nichts
+diesen Rechner. `config.json` mit deinen Pfaden bleibt neben dem Programm liegen.
+
+Eines solltest du wissen: Wenn du den Backup-Ordner in eine Cloud legst — OneDrive,
+Dropbox — landen deine Spielstände dort. Das ist deine Entscheidung, nicht etwas,
+das das Programm von sich aus tut.
+
+### Es fasst das Spiel nicht an
+
+Das Einzige, was es über *Diablo II: Resurrected* wissen will, ist: läuft es
+gerade? Nur damit es sich weigern kann, Dateien unter einem laufenden Spiel
+wegzuziehen. Es liest oder schreibt keinen Speicher, klinkt sich nirgends ein,
+startet und beendet nichts. Es arbeitet ausschließlich an Dateien.
+
+### Kann ich dafür gebannt werden?
+
+Ehrliche Antwort in zwei Teilen.
+
+**An Online-Charaktere kommt es gar nicht heran.** Ladder- und andere
+Online-Charaktere liegen auf Blizzards Servern; auf deiner Platte steht nichts von
+ihnen. Das Programm arbeitet ausschließlich an den Dateien lokaler Charaktere.
+
+**Einen alten Stand zurückspielen ist trotzdem eine Änderung am Spielstand.** Was
+Blizzard davon hält, kann dir niemand versprechen. Wer online spielt und an seinem
+Konto hängt, sollte im Kopf behalten: Dieses Werkzeug ist für die lokalen
+Charaktere gedacht, und die Benutzung ist deine Entscheidung.
+
+### Warum wird mein Virenscanner nervös?
+
+Weil es ein PowerShell-Skript ist, das Dateien kopiert — dasselbe Muster benutzen
+auch Schadprogramme. Harmlos aussehen *und* die Arbeit tun geht nicht beides.
+
+Was besser hilft als ein Versprechen: **lies es.** Es ist eine einzige Textdatei.
+Suche nach `Remove-Item`, dann findest du alle fünf Stellen, an denen überhaupt
+etwas gelöscht wird, oder nach `Copy-Item` und `Move-Item` für jede Stelle, an der
+Dateien wandern.
+
+Eine digitale Signatur hat das Programm nicht, deshalb kann Windows vor einem
+unbekannten Herausgeber warnen. Ein Zertifikat kostet jedes Jahr Geld — schwer zu
+rechtfertigen für etwas, das verschenkt wird.
+
+### Warum steht im Starter `-ExecutionPolicy Bypass`?
+
+Windows führt unsignierte PowerShell-Skripte standardmäßig nicht aus. Die Angabe
+hebt das **nur für diesen einen Start** auf. Sie ändert keine Einstellung,
+schreibt nichts in die Registry und lässt die Richtlinie auf deinem System
+unverändert. Nach dem Beenden bleibt nichts davon aktiv.
+
+### Was es auf der Festplatte anrichtet
+
+Aufgeräumt wird **nie** automatisch — absichtlich, damit nichts hinter deinem
+Rücken verschwindet. Eine Charakter-Sicherung kostet im Schnitt rund **100 KB**;
+über 72 echte Sicherungen gemessen lag sie zwischen 12 KB und 430 KB, je nachdem
+wie viele Kartendateien ein Charakter hat. Das wird bei jedem Klick geschrieben,
+auch wenn sich nichts geändert hat. Wer nach jeder Sitzung sichert, sollte über ein
+Jahr mit ein paar hundert Megabyte rechnen und alte Sicherungen selbst löschen,
+wenn er den Platz braucht.
+
+In jeder Sicherung steht außerdem in der `_INFO.txt`, aus welchem Ordner sie kam.
+Gibst du einen Backup-Ordner weiter, geht dein Windows-Benutzername in diesem Pfad
+mit.
+
 ## Wenn etwas klemmt
 
 | Problem | Ursache |

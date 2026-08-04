@@ -102,6 +102,79 @@ different place. Delete the project folder and it is gone.
 - The shared stash belongs to all characters together. It is always included in a
   backup, never restored unless you ask, and never moved when parking.
 
+## Transparency: privacy, antivirus and your account
+
+Everything in this section can be checked in the source — that is the point of
+shipping a readable script rather than a compiled program.
+
+### It never goes online
+
+There is no network code in it at all: no web requests, no downloads, no sockets,
+no telemetry, no update check, no analytics. Nothing about you or your characters
+leaves the machine. The ten `http://` strings in the source are XML namespace
+identifiers of the interface description — names, never fetched.
+
+`config.json` holds your own folder paths and your settings and stays next to the
+program.
+
+One thing worth knowing: if you point the backup folder at a cloud-synced location
+such as OneDrive or Dropbox, your save games go into that cloud. That is your
+choice, not something the program does on its own.
+
+### It does not touch the game
+
+The only question the program ever asks about *Diablo II: Resurrected* is whether
+the process is running, so it can refuse to move files underneath a running game.
+It never reads or writes the game's memory, never injects anything, never starts or
+stops it. It only ever touches files on disk.
+
+### Can this get my account banned?
+
+Honest answer, in two halves.
+
+**It cannot reach online characters at all.** Ladder and other online characters
+live on Blizzard's servers; nothing on your disk represents them, so there is
+nothing here to back up, restore or park. This works exclusively on the local files
+of offline characters.
+
+**But restoring an old save is still a change to your save game.** Nobody can
+promise you what Blizzard makes of that. If you play online and care about your
+account, keep in mind that this tool is for your local characters — and that using
+it is your decision, as the notice on first start says.
+
+### Why does my antivirus get nervous?
+
+Because it is a PowerShell script that copies files, and malicious scripts do the
+same thing. There is no way to look harmless to a heuristic and still do the job.
+
+Better than trusting a promise: **read it.** It is a single plain text file. Search
+for `Remove-Item` and you will find all five places where anything is deleted, or
+`Copy-Item` and `Move-Item` for every place files are moved.
+
+The program carries no code signature, so Windows SmartScreen may warn about an
+unknown publisher. A certificate costs real money every year, which is hard to
+justify for a tool given away for free.
+
+### Why does the launcher say `-ExecutionPolicy Bypass`?
+
+Windows refuses to run unsigned PowerShell scripts by default. The flag lifts that
+**for this one launch only**. It changes no setting, writes nothing to the registry
+and leaves the policy on your system exactly as it was. Close the program and
+nothing of it stays active.
+
+### What it does to your disk
+
+Backups are never cleaned up automatically — deliberately, so that nothing
+disappears behind your back. A character backup costs about **100 KB** on average;
+measured across 72 real backups the range was 12 KB to 430 KB, depending on how
+many map files a character has. That is written on every press of the button, even
+when nothing changed. Backing up after each session, expect a few hundred megabytes
+over a year, and delete old backups yourself when you want the space back.
+
+Every backup also records in its `_INFO.txt` which folder it came from. If you ever
+hand a backup folder to someone else, your Windows user name travels along in that
+path.
+
 ## Documentation
 
 | File | For whom |
