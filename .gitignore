@@ -1,0 +1,25 @@
+# Persönliche Pfade, Sprache, gemerkte Ansicht und die Bestätigung des
+# Haftungshinweises. Gehört niemandem außer dem jeweiligen Benutzer und darf
+# nicht ins Repository - sonst stehen fremde Benutzernamen und Laufwerke drin.
+config.json
+
+# Wird von Build-Deploy.ps1 erzeugt und lässt sich jederzeit neu bauen.
+_deploy/
+
+# Der Standard-Backup-Ordner liegt neben dem Programm. Da liegen echte
+# Spielstände drin - die haben in einem Repository nichts verloren.
+Backups/
+D2R-Backups/
+
+# Von Render-Ansicht.ps1 erzeugte Bilder, falls sie hier landen.
+ansicht*.png
+hinweis*.png
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Hinweis: _versionen/ ist bewusst NICHT ausgeschlossen. Die Ordner sind die
+# Rückfahrkarten zu früheren Ständen und funktionieren ohne Git - genau darum
+# gibt es sie. Wer sie später doch für überflüssig hält, weil die Historie im
+# Repository steht, nimmt sie hier auf.

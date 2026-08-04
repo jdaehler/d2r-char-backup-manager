@@ -1,0 +1,29 @@
+Version 1.0 - Sicherungsstand vom 04.08.2026
+============================================
+
+Das ist der vollstaendige Quellstand der Version 1.0, gesichert bevor mit der
+Erweiterung "Charaktere parken" (Version 1.1) begonnen wurde.
+
+Stand dieser Version:
+  - Sichern laeuft gegen die echten Spielstaende (28 Charaktere)
+  - Wiederherstellen am 04.08.2026 echt gelaufen und im Spiel bestaetigt
+  - Test-Sandbox.ps1: 48 Pruefungen, alle gruen
+
+ZURUECK AUF DIESE VERSION
+-------------------------
+Alle Dateien aus diesem Ordner (ausser dieser _INFO.txt und der ZIP-Datei)
+eine Ebene hoeher nach
+
+    P:\Cowork\D2R-Char-Backup-Manager\
+
+zurueckkopieren und die vorhandenen ueberschreiben. Fertig - mehr ist nicht
+noetig, das Programm braucht keine Installation.
+
+Die config.json ist bewusst NICHT dabei: sie enthaelt die persoenlichen Pfade
+und die gemerkte Sortierung und soll beim Zurueckgehen erhalten bleiben.
+
+Die ZIP-Datei ist das fertige Weitergabe-Paket der Version 1.0 fuer Freunde.
+
+WICHTIG: D2RCharBackupManager.ps1 muss UTF-8 MIT BOM bleiben. Wird die Datei
+mit einem Werkzeug bearbeitet, das das BOM verwirft, zerlegt Windows
+PowerShell 5.1 jeden Umlaut. Siehe README.md, Abschnitt "Kodierung".

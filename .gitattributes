@@ -1,0 +1,23 @@
+# Hausregel aus P:\Cowork\CLAUDE.md, Abschnitt "Windows-Stolpersteine":
+# ohne diese Datei erzeugt der erste Commit vom anderen Rechner aus einen
+# Riesen-Diff, in dem jede Zeile als geaendert gilt.
+* text=auto eol=lf
+
+# Windows-Starter brauchen CRLF. Bei .cmd und .bat ist das nicht Kosmetik:
+# mit LF verschluckt der Kommandozeilen-Interpreter Sprungmarken.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Hinweis zur Kodierung: D2RCharBackupManager.ps1 ist UTF-8 MIT BOM und muss es
+# bleiben (siehe README, Abschnitt "Kodierung"). Die Zeilenende-Umwandlung oben
+# laesst das BOM unberuehrt - nur falls jemand hier spaeter "aufraeumen" will:
+# das eine hat mit dem anderen nichts zu tun.
+
+# Binaerdateien nie anfassen.
+*.zip binary
+*.png binary
+*.d2s binary
+*.d2i binary
+*.ma0 binary
+*.map binary

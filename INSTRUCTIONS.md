@@ -1,0 +1,295 @@
+﻿# D2R Char Backup Manager — Instructions
+
+Backs up and manages local *Diablo II: Resurrected* characters. You can label
+backups, tag them, attach notes, and restore a character under a **different
+name**.
+
+Works for **local (offline) characters** only. Online characters live on
+Blizzard's servers and cannot be backed up from outside the game.
+
+---
+
+## What you need
+
+* **Windows 10 or 11** — that is all.
+* Windows PowerShell ships with Windows. **Nothing to install** — no .NET, no
+  Python, no administrator rights.
+* *Diablo II: Resurrected* with at least one local character.
+
+## Starting it
+
+1. Extract the ZIP file wherever you like — desktop, documents, USB stick.
+2. Double-click **`Start D2R Char Backup Manager.cmd`**.
+
+There is **nothing to set up**. The program finds your save games by itself and
+stores its backups in a **`Backups`** subfolder right next to it. Move the whole
+folder somewhere else and your backups simply come along.
+
+> **Did the ZIP come from the internet?** Windows blocks downloaded files. The
+> easiest fix is **before** extracting: right-click the ZIP → *Properties* →
+> tick **Unblock** at the bottom → *OK*. Everything extracted from it is then
+> free too. If you already extracted it, do the same with the `.cmd`.
+
+### If no characters show up
+
+Then your save folder is not where Windows usually keeps it. The program tells
+you at startup where it looked; enter the correct folder under **Settings**. The
+usual location is:
+
+```
+C:\Users\<YourName>\Saved Games\Diablo II Resurrected
+```
+
+### What the program remembers
+
+Window size, the width of the left half, the column widths of both lists, the
+sorting and both hide checkboxes are saved when you close the program and restored
+on the next start. So you arrange your view once.
+
+The window *position* is deliberately **not** remembered: if you work with two
+screens and unplug one, you would otherwise find the window outside the visible
+area.
+
+If nothing fits any more, **Settings → Reset view** helps. It only resets the
+view — paths, language and your backups are left untouched. The window restarts
+briefly.
+
+### Storing backups elsewhere
+
+Under **Settings** you can pick any backup folder. A different drive than the one
+holding your save games is a good choice — then your backups survive a disk
+failure too.
+
+## On first start: the notice
+
+Before the first start a **notice about liability and your own responsibility**
+appears. It cannot be skipped: only with the checkbox ticked and a click on
+*I agree, start the program* does the main window open. After that it stays away —
+unless the text changes materially.
+
+The core in one sentence: the program is free and comes with no warranty
+whatsoever, you use it on your own responsibility, and **you should make your own
+copy of your save folder first** — with Windows Explorer, independently of this
+program. It takes a minute and it is the most reliable way back there is.
+
+You can read it again any time via the **About** button in the top right. It also
+shows the version, the date you accepted the notice and the licence — and a button
+there opens these instructions.
+
+## Language
+
+The **`EN`** button in the top right switches the interface to English (and `DE`
+switches back). The window briefly restarts; the setting is remembered.
+
+---
+
+## Using it
+
+### Backing up
+
+| Button | What it does |
+|---|---|
+| **Back up selected (n)** | **The only button on the left that creates anything.** Backs up every selected character including the shared stash; the number tells you up front how many that is |
+| ☑ (icon) | Select all characters — same as Ctrl+A |
+| ☐ (icon) | Clear the selection |
+| 📂 (icon) | Show the save folder in Explorer |
+| 🔄 (icon) | Reload the lists |
+| **Back up everything** | Sits in its own *Whole folder* group. Backs up the entire save folder in one piece |
+| **Park… / Bring back** | Sit in their own *Character selection* group. Take characters out of the D2R character selection and back in — see the separate section further down |
+
+The icon buttons deliberately carry no text — hover over one and it tells you what it
+does. Only the two buttons that actually create something are labelled.
+
+**Selecting several:** Ctrl-click for individual ones, Shift-click for a range,
+**Ctrl+A** or the *Select all* button for all. A plain click selects exactly one —
+the normal case.
+
+### What is the difference between "selected" and "everything"?
+
+Selecting all 28 characters and backing them up gives you **28 separate character
+backups**. *Back up everything* creates **one** backup of the whole folder — and that
+one also contains things no character backup holds:
+
+```
+Settings.json    graphics, sound, key bindings
+*.fltr           your item filters
+*.ctlo / *.keyo  key bindings of your online characters
+```
+
+On top of that, everything in it comes from the same second. That is why I recommend
+it for the shared stash case (see below).
+
+Nothing is skipped: whatever you select gets backed up, even if nothing changed
+since the last backup. The status bar tells you afterwards if a backup is identical
+in content to an earlier one.
+
+Backing up is safe and never changes anything in the game. It also works while
+D2R is running — the backup then automatically gets the tag `spiel-lief`, because
+the saved state may be older than what is happening in the game right now.
+
+**Suggestion:** press **All** once after every play session.
+
+### Labelling
+
+At the bottom right you can give each backup a **label**, **tags** (comma
+separated) and a **note** — then press *Apply*. Without a label you will only be
+able to tell your backups apart by their timestamp.
+
+### Restoring
+
+> **Quit D2R first.** The game writes its state back when it exits and would
+> otherwise overwrite your restore. While D2R runs, the program shows a red
+> warning in the bottom right.
+
+Select a backup → **Restore…**. In the dialog:
+
+* **Target character name** — keep the original name to replace the character. A
+  *different* name creates a **copy as a new character**; the original is left
+  untouched.
+* **Also restore the shared stash** — **off** by default, and that is usually
+  right. See below.
+* **Create a safety backup beforehand** — on by default, please leave it on. The
+  state that is about to be overwritten is saved first and appears in the list
+  marked *Auto*. That is your way back.
+
+### The shared stash — the one tricky decision
+
+The stash belongs to **all characters together**. So there is no option that is
+always correct:
+
+| Your choice | Consequence |
+|---|---|
+| Do **not** restore the stash (default) | The stash stays as it is now. If you moved items from the character into the stash since the backup, you will end up with **duplicates**. |
+| **Do** restore the stash | Character and stash match each other again. But everything you stored since the backup is **gone**. |
+
+The program does the judging for you: under the checkbox it tells you whether the
+stash has changed at all since that backup. If it says *unchanged*, the choice does
+not matter. If it says in red that it changed, read the sentence — the checkbox will
+cost you real items.
+
+**Rule of thumb:**
+
+* **Only the character went wrong** (died, misspent skills, bad trade)
+  → leave the box unticked. This is the normal case.
+* **You want a whole moment in time back**, character *and* stash
+  → use a **Back up everything** backup instead of a character backup. That one is
+  consistent by design because everything comes from the same second.
+* **In doubt** → restore without the box first and check in the game. The automatic
+  safety backup always lets you go back.
+
+### Deleting
+
+**Delete** only removes the *backup*, never a save game.
+
+---
+
+## Taking characters out of the game's list (parking)
+
+With many characters you scroll through an endless list in D2R. **Parking** clears
+characters out of the character selection without deleting them.
+
+The trick behind it: D2R only shows characters whose files sit **directly** in the
+save folder. Anything inside a subfolder is invisible to the game. So the program
+moves parked characters into `_Projekte\<project name>\` inside the save folder.
+Nothing is deleted, nothing is rewritten — only moved.
+
+### How to do it
+
+1. Select the characters on the left (Ctrl-click for several).
+2. In the **Character selection** group press **Park…**.
+3. Pick an existing project or type a new name — for example *Old heroes*,
+   *Hardcore attempt*, *Ladder season*.
+4. Done. Next time you start D2R they are gone from the selection.
+
+**Bring back** undoes it: select the parked characters, press the button, and they
+are back in the game's list.
+
+### What you see in the list
+
+Parked characters do **not** disappear from the program — they stay in the list,
+just **greyed out and italic**, with their project in the *Project* column. That way
+you never lose track of what you put away.
+
+If that gets too crowded, the **hide parked** checkbox in the *Character selection*
+group takes them out of the list. This changes nothing about the parking itself —
+only the display. The checkbox is not remembered: after restarting the program the
+parked ones are listed again.
+
+### D2R must be closed
+
+> **The program checks whether D2R is running before every park and bring-back —
+> and **blocks** if it is.** There is no "continue anyway". The game keeps the save
+> files open and writes them back when it exits; moving files underneath it would
+> leave you with half a file set.
+
+Two things this check honestly **cannot** do:
+
+* It only sees *whether* the game is running, not whether it is writing right now.
+  For this purpose that is enough.
+* If you start D2R in the very second the files are being moved, the check comes
+  too late. That is why it runs immediately before **and** immediately after — if
+  something changed in between, the program tells you instead of hiding it.
+
+### Important: parked is not backed up
+
+A backup is a **copy** — if you lose it, you still have the original. A parked
+character **is** the original, just somewhere else. Delete the project folder and
+the character is gone.
+
+That is why the program **automatically creates a backup of every character before
+parking it**. This cannot be switched off. Each project folder also holds an
+`_INFO.txt` explaining what is in there and how to move it back by hand if needed.
+
+### Two small things
+
+* **Parked characters cannot be backed up.** They are not in the save folder. If
+  you select only parked ones and press *Back up selected*, the program says so.
+  The number on the button counts only the active ones anyway.
+* **The shared stash never travels along.** The stash belongs to all characters
+  together and always stays in the save folder.
+* **"Back up everything" does not cover parked characters** — it backs up the save
+  folder, and parked ones live in a subfolder below it. They are covered by the
+  mandatory backup taken when parking.
+
+---
+
+## Where things are
+
+Backups go into the backup folder you chose:
+
+```
+_LIESMICH.txt                                explains the layout
+index.json                                   all labels, tags and notes
+Charaktere\<name>\<date_time> Lvl<n> <class>\
+    _INFO.txt, the save files, SharedStash\
+Kompletter Ordner\<date_time>\
+    _INFO.txt, all files
+```
+
+**Folders instead of ZIPs, uncompressed** — on purpose. You should be able to see
+in Explorer what was backed up when, and to copy it back **without this program**
+in an emergency. Every backup holds an `_INFO.txt` with all the details and
+step-by-step instructions for copying it back by hand.
+
+Parked characters are **not** here; they live in the save folder under
+`_Projekte\<project name>\`.
+
+Next to the program sits `config.json` holding the paths and the language.
+
+## Passing it on
+
+Copy the whole folder. **Delete `config.json` first** — it contains personal
+paths. Not strictly required (the program detects foreign paths and asks again),
+but cleaner. The backups themselves (`index.json`, `snapshots`) belong to each
+user and are not shared.
+
+## If something goes wrong
+
+| Problem | Cause |
+|---|---|
+| Nothing happens on click | The status bar at the bottom says what the program did |
+| No characters listed | Wrong save folder — correct it under *Settings* |
+| Window does not open | Right-click the `.cmd` → *Properties* → **Unblock** |
+| Restored state is gone again | D2R was still running and overwrote it on exit |
+| Parking does not work | D2R is running — the program blocks on purpose. Quit the game and it works |
+| Parked character missing in the game | That is the point. Use *Bring back* to put it into the selection again |

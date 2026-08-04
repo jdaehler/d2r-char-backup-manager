@@ -1,0 +1,142 @@
+﻿$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName PresentationFramework, System.IO.Compression, System.IO.Compression.FileSystem -EA SilentlyContinue
+
+$src = Join-Path $PSScriptRoot 'D2RCharBackupManager.ps1'
+$ast = [System.Management.Automation.Language.Parser]::ParseFile($src, [ref]$null, [ref]$null)
+foreach ($a in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst]}, $false)) {
+  if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName)$') { Invoke-Expression $a.Extent.Text }
+}
+foreach ($f in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $false)) {
+  Invoke-Expression $f.Extent.Text
+}
+
+$root   = Join-Path $env:TEMP ('d2rtest-' + [guid]::NewGuid().ToString('N').Substring(0,8))
+$saves  = Join-Path $root 'saves'
+$backup = Join-Path $root 'backup'
+New-Item -ItemType Directory -Path $saves, $backup -Force | Out-Null
+
+function New-FakeD2S($Path, $Version, $ClassId, $Level, $Status) {
+  $b = New-Object byte[] 128
+  [BitConverter]::GetBytes([uint32]2857740885).CopyTo($b, 0)
+  [BitConverter]::GetBytes([uint32]$Version).CopyTo($b, 4)
+  [BitConverter]::GetBytes([uint32]128).CopyTo($b, 8)
+  $base = if ($Version -ge 100) { 0x14 } else { 0x24 }
+  $b[$base] = $Status; $b[$base+4] = $ClassId; $b[$base+5] = 0x10; $b[$base+6] = 0x1E; $b[$base+7] = $Level
+  [BitConverter]::GetBytes([uint32]1785000000).CopyTo($b, $base+12)
+  [System.IO.File]::WriteAllBytes($Path, $b)
+}
+
+$stashPath = Join-Path $saves 'ModernSharedStashSoftCoreV2.d2i'
+New-FakeD2S (Join-Path $saves 'TestBarb.d2s') 105 4 42 0x20
+New-FakeD2S (Join-Path $saves 'TestHC.d2s')    99 6 88 0x24
+foreach ($e in '.ctl','.key','.ma0','.map') { [System.IO.File]::WriteAllText((Join-Path $saves "TestBarb$e"), 'x') }
+[System.IO.File]::WriteAllText($stashPath, 'stash-soft')
+[System.IO.File]::WriteAllText((Join-Path $saves 'TestBarb143022.bak'), 'nicht-teil-des-chars')
+
+$script:Config = [pscustomobject]@{ SavePath = $saves; BackupPath = $backup; ClassNames = $script:DefaultClassNames }
+Import-Index
+
+$pass = 0; $fail = 0
+function Check($name, $cond, $detail = '') {
+  if ($cond) { $script:pass++; "  [ok]   $name" } else { $script:fail++; "  [FAIL] $name  $detail" }
+}
+
+"--- Header-Parsing ---"
+$i1 = Get-D2SInfo (Join-Path $saves 'TestBarb.d2s')
+$i2 = Get-D2SInfo (Join-Path $saves 'TestHC.d2s')
+Check "v105 Klasse=Barbar"    ($i1.ClassName -eq 'Barbar') $i1.ClassName
+Check "v105 Level=42"         ($i1.Level -eq 42)           $i1.Level
+Check "v105 Softcore"         (-not $i1.Hardcore)
+Check "v99  Klasse=Assassine" ($i2.ClassName -eq 'Assassine') $i2.ClassName
+Check "v99  Level=88"         ($i2.Level -eq 88)           $i2.Level
+Check "v99  Hardcore erkannt" ($i2.Hardcore)
+
+"--- Dateisatz-Erkennung ---"
+$files = Get-CharacterFiles 'TestBarb'
+Check "5 Dateien erkannt" ($files.Count -eq 5) $files.Count
+Check "zeitgestempelte .bak ausgeschlossen" (@($files | Where-Object { $_.Extension -eq '.bak' }).Count -eq 0)
+Check "2 Charaktere gelistet" ((Get-Characters).Count -eq 2)
+
+"--- Snapshot anlegen ---"
+$snap = New-Snapshot -Kind char -CharName 'TestBarb' -Label 'Vor Uber' -Tags @('hardcore','test') -Note 'Notiz'
+$ordner = Join-Path $backup $snap.pfad
+Check "Snapshot-Ordner existiert" (Test-Path $ordner) $snap.pfad
+Check "Stash mitgesichert"     ($snap.includesStash)
+Check "Metadaten Level 42"     ($snap.level -eq 42)
+Check "Tags gespeichert"       ((@($snap.tags) -contains 'hardcore') -and (@($snap.tags) -contains 'test'))
+Check "index.json geschrieben" (Test-Path (Join-Path $backup 'index.json'))
+
+"--- Ablage im Explorer nachvollziehbar? ---"
+Check "liegt unter Charaktere\TestBarb" ($snap.pfad -like 'Charaktere\TestBarb\*') $snap.pfad
+Check "Ordnername nennt Level und Klasse" ((Split-Path -Leaf $ordner) -match 'Lvl42 Barbar') (Split-Path -Leaf $ordner)
+Check "Ordnername beginnt mit Datum" ((Split-Path -Leaf $ordner) -match '^\d{4}-\d{2}-\d{2}_\d{6}')
+$dateien = @(Get-ChildItem $ordner -File | ForEach-Object { $_.Name })
+Check "5 Charakterdateien + _INFO.txt" ($dateien.Count -eq 6) ($dateien -join ' ')
+Check "_INFO.txt vorhanden" ($dateien -contains '_INFO.txt')
+Check "Spielstanddatei direkt greifbar" ($dateien -contains 'TestBarb.d2s')
+Check "SharedStash als Unterordner" (Test-Path (Join-Path $ordner 'SharedStash\ModernSharedStashSoftCoreV2.d2i'))
+Check "_LIESMICH.txt im Backup-Ordner" (Test-Path (Join-Path $backup '_LIESMICH.txt'))
+$info = Get-Content (Join-Path $ordner '_INFO.txt') -Raw
+Check "_INFO nennt Charakter und Label" ($info -match 'TestBarb' -and $info -match 'Vor Uber')
+Check "_INFO enthaelt Handanleitung" ($info -match 'VON HAND WIEDERHERSTELLEN')
+Check "unkomprimiert ablegt" (((Get-Item (Join-Path $ordner 'TestBarb.d2s')).Length) -eq ((Get-Item (Join-Path $saves 'TestBarb.d2s')).Length))
+
+"--- Wiederherstellen unter anderem Namen ---"
+[System.IO.File]::WriteAllText($stashPath, 'STASH-VERAENDERT')
+$restored = Restore-Snapshot -Snapshot $snap -TargetName 'NeuerBarb' -SkipSafetyBackup
+Check "5 Dateien zurueckgeschrieben" ($restored.Count -eq 5) $restored.Count
+Check "NeuerBarb.d2s angelegt" (Test-Path (Join-Path $saves 'NeuerBarb.d2s'))
+Check "NeuerBarb.ma0 angelegt" (Test-Path (Join-Path $saves 'NeuerBarb.ma0'))
+Check "Original bleibt bestehen" (Test-Path (Join-Path $saves 'TestBarb.d2s'))
+$ni = Get-D2SInfo (Join-Path $saves 'NeuerBarb.d2s')
+Check "Kopie intakt (Barbar Lvl 42)" ($ni.Valid -and $ni.ClassName -eq 'Barbar' -and $ni.Level -eq 42)
+Check "Stash NICHT angefasst" ([System.IO.File]::ReadAllText($stashPath) -eq 'STASH-VERAENDERT')
+
+"--- Wiederherstellen MIT Stash ---"
+$null = Restore-Snapshot -Snapshot $snap -TargetName 'TestBarb' -RestoreStash -SkipSafetyBackup
+Check "Stash jetzt zurueckgesetzt" ([System.IO.File]::ReadAllText($stashPath) -eq 'stash-soft')
+
+"--- Automatische Sicherheitskopie ---"
+$before = $script:Index.snapshots.Count
+$null = Restore-Snapshot -Snapshot $snap -TargetName 'TestBarb'
+Check "Sicherheitskopie angelegt" ($script:Index.snapshots.Count -eq $before + 1) $script:Index.snapshots.Count
+Check "als Auto markiert" (@($script:Index.snapshots)[-1].automatic)
+
+"--- Gesamtstand ---"
+$expected = @(Get-ChildItem $saves -File | Where-Object { $_.Extension -ne '.bak' }).Count
+$full = New-Snapshot -Kind full -Label 'Alles'
+Check "enthaelt alle Nicht-bak-Dateien ($expected)" ($full.fileCount -eq $expected) $full.fileCount
+
+"--- Namenspruefung ---"
+Check "'Ab' gueltig"           ((Test-D2RName 'Ab') -eq '')
+Check "'Neuer_Barb' gueltig"   ((Test-D2RName 'Neuer_Barb') -eq '')
+Check "'1Barb' abgelehnt"      ((Test-D2RName '1Barb') -ne '')
+Check "'A' abgelehnt"          ((Test-D2RName 'A') -ne '')
+Check "'a_b-c' abgelehnt"      ((Test-D2RName 'a_b-c') -ne '')
+Check "16 Zeichen abgelehnt"   ((Test-D2RName 'Abcdefghijklmnop') -ne '')
+
+"--- Snapshot loeschen ---"
+$zp = Join-Path $backup $full.pfad
+Remove-Snapshot $full
+Check "Ordner entfernt" (-not (Test-Path $zp))
+Check "aus Index entfernt" (@($script:Index.snapshots | Where-Object { $_.id -eq $full.id }).Count -eq 0)
+
+"--- Letzte Sicherung eines Charakters loeschen ---"
+$einzel = New-Snapshot -Kind char -CharName 'TestHC'
+$charOrdner = Split-Path -Parent (Join-Path $backup $einzel.pfad)
+Check "Charakterordner angelegt" (Test-Path $charOrdner)
+Remove-Snapshot $einzel
+Check "leerer Charakterordner mit entfernt" (-not (Test-Path $charOrdner)) $charOrdner
+Check "Charaktere-Ordner bleibt bestehen" (Test-Path (Join-Path $backup 'Charaktere'))
+
+"--- Neuladen des Index ---"
+Import-Index
+Check "Snapshots ueberleben Neustart" ($script:Index.snapshots.Count -gt 0) $script:Index.snapshots.Count
+$re = @($script:Index.snapshots | Where-Object { $_.id -eq $snap.id })[0]
+Check "Tags nach Neuladen erhalten" ((@($re.tags) -contains 'hardcore') -and (@($re.tags) -contains 'test')) (@($re.tags) -join ',')
+
+[System.IO.Directory]::Delete($root, $true)
+""
+"ERGEBNIS: $pass bestanden, $fail fehlgeschlagen"
+
+
