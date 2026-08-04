@@ -4,7 +4,7 @@ A desktop tool for backing up, organising and restoring local *Diablo II:
 Resurrected* characters. PowerShell + WPF, no installation, no server, no
 background process.
 
-![Main window](screenshots/main-window.png)
+![Main window](screenshots/main-window.jpg)
 
 Works with **offline characters only**. Online characters live on Blizzard's
 servers and cannot be backed up from outside.
