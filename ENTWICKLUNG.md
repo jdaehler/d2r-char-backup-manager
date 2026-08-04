@@ -61,7 +61,8 @@ als Datei in den Verlauf. Sie bleiben liegen, weil sie auch ohne Git funktionier
 
 ## Stand
 
-**Sichern** läuft gegen die echten Spielstände (28 Charaktere, 70 Sicherungen).
+**Sichern** läuft gegen die echten Spielstände. Stand 04.08.2026: 28 Charaktere, davon
+21 aktiv im Spielstand-Ordner und 7 geparkt im Projekt `FremdChars`; 79 Sicherungen.
 
 **Wiederherstellen** ist am 04.08.2026 zum ersten Mal gegen den echten Spielstand-Ordner
 gelaufen: `jdBarb` (Lvl 4 Barbar) unter dem freien Namen `TestKopie` wiederhergestellt,

@@ -56,6 +56,14 @@ On first start a notice about liability appears that has to be accepted once.
       _INFO.txt, all files
 ```
 
+> **Why are those folder names German?** `Charaktere` ("characters"),
+> `Kompletter Ordner` ("whole folder"), `SharedStash` and `_LIESMICH.txt`
+> ("readme") keep their names in the English interface as well. They are fixed on
+> purpose: if they were translated, switching the language would create a second
+> folder tree, and backups made in one language would be invisible in the other.
+> The *contents* of `_LIESMICH.txt` and of every `_INFO.txt` do follow the
+> interface language.
+
 You should be able to see in Explorer what was backed up and when, and to copy it
 back **without this program** if you ever need to. Every backup carries an
 `_INFO.txt` with all the details and step-by-step instructions for restoring it by

@@ -266,6 +266,13 @@ Kompletter Ordner\<date_time>\
     _INFO.txt, all files
 ```
 
+> **Why are those names German?** `Charaktere` ("characters"), `Kompletter Ordner`
+> ("whole folder"), `SharedStash` and `_LIESMICH.txt` ("readme") keep their names
+> even in the English interface. That is deliberate: if they were translated,
+> switching the language would create a second set of folders, and backups made in
+> one language would be invisible in the other. What you *read* inside
+> `_LIESMICH.txt` and every `_INFO.txt` does follow the interface language.
+
 **Folders instead of ZIPs, uncompressed** — on purpose. You should be able to see
 in Explorer what was backed up when, and to copy it back **without this program**
 in an emergency. Every backup holds an `_INFO.txt` with all the details and
