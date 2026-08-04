@@ -20,6 +20,12 @@ in the window title and on the right of the status bar.
 - `LICENSE` (MIT) is now part of the distributed package.
 - Column widths of the snapshot list trimmed — the *Size* column used to sit
   outside the visible area.
+- **Dates now follow the interface language.** German keeps `04.08.2026`, English
+  gets `2026-08-04` — ISO rather than `08/04/2026`, because the American and
+  British orders swap day and month and you cannot tell them apart by looking.
+  Sorting is unaffected: it never used the formatted text.
+- The test suite checks that every visible string has an English counterpart, so a
+  forgotten translation fails a test run instead of surfacing in the program.
 
 ## 1.1 — 2026-08-04
 

@@ -4,7 +4,7 @@ Add-Type -AssemblyName PresentationFramework, System.IO.Compression, System.IO.C
 $src = Join-Path $PSScriptRoot 'D2RCharBackupManager.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($src, [ref]$null, [ref]$null)
 foreach ($a in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst]}, $false)) {
-  if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName|AppVersion)$') { Invoke-Expression $a.Extent.Text }
+  if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName|AppVersion|TextsEn)$') { Invoke-Expression $a.Extent.Text }
 }
 foreach ($f in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $false)) {
   Invoke-Expression $f.Extent.Text
@@ -220,6 +220,42 @@ $full2 = New-Snapshot -Kind full -Label 'Mit geparkten Charakteren'
 $fullOrdner = Join-Path $backup $full2.pfad
 Check "Projektordner nicht im Vollbackup" (-not (Test-Path (Join-Path $fullOrdner '_Projekte')))
 Check "geparkte Datei nicht im Vollbackup" (@(Get-ChildItem $fullOrdner -Recurse -File | Where-Object { $_.Name -eq 'TestBarb.map' }).Count -eq 0)
+
+"--- Uebersetzungen ---"
+# Jeder Text, der im Programm sichtbar wird, braucht einen Eintrag in
+# $script:TextsEn. Fehlt einer, faellt die Oberflaeche an dieser Stelle still auf
+# Deutsch zurueck - das faellt beim Entwickeln nicht auf, einem englischen Nutzer
+# aber sofort. Deshalb hier pruefen statt hoffen.
+$quelle = [System.IO.File]::ReadAllText($src)
+
+# Nur literale Aufrufe: (T $variable) laesst sich von aussen nicht aufloesen.
+$sichtbar = @{}
+foreach ($m in ([regex]"\(T\s+'((?:[^']|'')*)'").Matches($quelle)) {
+    $sichtbar[$m.Groups[1].Value.Replace("''","'")] = 'Code'
+}
+# Beschriftungen aus dem XAML - dieselben Attribute, die Convert-XamlText anfasst.
+foreach ($m in ([regex]'(?:Header|Content|Text|ToolTip|Title)="([^"]{2,})"').Matches($quelle)) {
+    $t = $m.Groups[1].Value
+    if ($t -match '^\{' -or $t -match '^&#x') { continue }   # Bindung bzw. Symbolzeichen
+    if (-not $sichtbar.ContainsKey($t)) { $sichtbar[$t] = 'XAML' }
+}
+foreach ($m in ([regex]'>([A-Za-zÄÖÜäöüß][^<>{]{2,60})</Button>').Matches($quelle)) {
+    $t = $m.Groups[1].Value.Trim()
+    if (-not $sichtbar.ContainsKey($t)) { $sichtbar[$t] = 'XAML' }
+}
+
+# Eigennamen werden bewusst nicht uebersetzt.
+$keineUebersetzung = @($script:AppName)
+
+$ohne = @()
+foreach ($k in $sichtbar.Keys) {
+    if ($keineUebersetzung -contains $k) { continue }
+    if (-not $script:TextsEn.ContainsKey($k)) { $ohne += "$($sichtbar[$k]): $k" }
+}
+
+Check "sichtbare Texte gefunden (>150)" ($sichtbar.Count -gt 150) $sichtbar.Count
+Check "TextsEn gefuellt (>200)"         ($script:TextsEn.Count -gt 200) $script:TextsEn.Count
+Check "jeder sichtbare Text hat eine englische Fassung" ($ohne.Count -eq 0) ("`n         " + (($ohne | Sort-Object) -join "`n         "))
 
 [System.IO.Directory]::Delete($root, $true)
 ""

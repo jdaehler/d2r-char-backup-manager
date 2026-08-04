@@ -215,6 +215,23 @@ function Export-Config {
     $script:Config | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $script:ConfigPath -Encoding UTF8
 }
 
+# Datumsformat je Sprache. Deutsch bleibt 04.08.2026, Englisch bekommt
+# 2026-08-04 - also ISO statt 08/04/2026, weil die amerikanische und die britische
+# Schreibweise Tag und Monat vertauschen und man einem Datum nicht ansieht, welche
+# gemeint ist.
+#
+# ACHTUNG: Diese Zeichenketten dienen nur der Anzeige. Sortiert wird niemals nach
+# ihnen, sondern nach den typfesten Feldern LastPlayedSort, SortKey und SizeSort -
+# sonst stuende "03.01.2019" zwischen den 2026ern.
+function Get-DateFormat {
+    param([switch]$WithSeconds)
+    if ($script:Config -and $script:Config.Language -eq 'en') {
+        if ($WithSeconds) { 'yyyy-MM-dd HH:mm:ss' } else { 'yyyy-MM-dd HH:mm' }
+    } else {
+        if ($WithSeconds) { 'dd.MM.yyyy HH:mm:ss' } else { 'dd.MM.yyyy HH:mm' }
+    }
+}
+
 function Get-ClassName([int]$Id) {
     $key = [string]$Id
     if ($script:Config.ClassNames.Contains($key)) { return (T $script:Config.ClassNames[$key]) }
@@ -317,7 +334,7 @@ function New-CharacterRecord {
         LastPlayed    = $info.LastPlayed
         # Fester Typ zum Sortieren - $null und DateTime gemischt lässt WPF stolpern.
         LastPlayedSort = if ($info.LastPlayed) { $info.LastPlayed } else { [datetime]::MinValue }
-        LastPlayedStr = if ($info.LastPlayed) { $info.LastPlayed.ToString('dd.MM.yyyy HH:mm') } else { '' }
+        LastPlayedStr = if ($info.LastPlayed) { $info.LastPlayed.ToString((Get-DateFormat)) } else { '' }
         FileCount     = @($Files).Count
         SnapCount     = $snaps.Count
         Version       = $info.Version
@@ -1011,7 +1028,7 @@ function Write-ProjectInfo {
 
     $z = @("$script:AppName $script:AppVersion", '')
     $z += '{0,-16}{1}' -f ((T 'Projekt') + ':'), $projekt
-    $z += '{0,-16}{1}' -f ((T 'Geparkt am') + ':'), (Get-Date).ToString('dd.MM.yyyy HH:mm')
+    $z += '{0,-16}{1}' -f ((T 'Geparkt am') + ':'), (Get-Date).ToString((Get-DateFormat))
     $z += '{0,-16}{1}' -f ((T 'Charaktere') + ':'), $saves.Count
     $z += ''
     foreach ($s in $saves) {
@@ -1835,7 +1852,7 @@ function ConvertTo-DateTimeSafe {
 }
 
 function Format-Timestamp {
-    param($Value, [string]$Format = 'dd.MM.yyyy HH:mm:ss')
+    param($Value, [string]$Format = (Get-DateFormat -WithSeconds))
     $dt = ConvertTo-DateTimeSafe $Value
     if ($dt) { $dt.ToString($Format) } else { '?' }
 }
@@ -1854,7 +1871,7 @@ function ConvertTo-SnapshotRow($Record) {
     $row = $Record.PSObject.Copy()
     # Mit Sekunden: mehrere Sicherungen derselben Minute wären sonst nicht
     # voneinander zu unterscheiden.
-    $row | Add-Member NoteProperty CreatedStr $(if ($created) { $created.ToString('dd.MM.yyyy HH:mm:ss') } else { '' }) -Force
+    $row | Add-Member NoteProperty CreatedStr $(if ($created) { $created.ToString((Get-DateFormat -WithSeconds)) } else { '' }) -Force
     # Auto-Kennzeichnung als Zusatz, nicht als eigener Typ: sonst erschiene eine
     # automatische Gesamtstand-Sicherung als "Gesamtstand", verschwände aber
     # trotzdem beim Filter "Auto-Sicherungen ausblenden".
@@ -2268,7 +2285,7 @@ function Show-RestoreDialog {
     $txtWarnB = $dlg.FindName('TxtWarnBox')
     $btnOk    = $dlg.FindName('BtnOk')
 
-    $created = Format-Timestamp $Record.created 'dd.MM.yyyy HH:mm'
+    $created = Format-Timestamp $Record.created (Get-DateFormat)
 
     if ($Record.kind -eq 'full') {
         $txtInfo.Text = ((T 'Kompletten Ordner vom {0} wiederherstellen. Alle Dateien aus dem Snapshot werden in den Spielstand-Ordner zurückgeschrieben und überschreiben gleichnamige Dateien.') -f $created)
@@ -2655,7 +2672,7 @@ $win.FindName('BtnDelete').Add_Click({
         [void][System.Windows.MessageBox]::Show((T 'Bitte einen Snapshot auswählen.'), $script:AppName, 'OK', 'Information')
         return
     }
-    $created = Format-Timestamp $rec.created 'dd.MM.yyyy HH:mm'
+    $created = Format-Timestamp $rec.created (Get-DateFormat)
     $what = if ($rec.kind -eq 'full') { T 'Kompletter Ordner' } else { (T 'Charakter') + " '$($rec.char)'" }
     $ans = [System.Windows.MessageBox]::Show(
         ((T 'Snapshot endgültig löschen?') + "`n`n$what " + $created + "`n" + (T 'Label:') + " $($rec.label)`n`n" + (T 'Die Spielstände selbst bleiben unberührt.')),
@@ -2772,7 +2789,7 @@ function Show-DisclaimerDialog {
         $d = $script:Config.Disclaimer
         if ($d -and $d.PSObject.Properties['AcceptedAt'] -and $d.AcceptedAt) {
             $txtB = $dlg.FindName('TxtBestaetigt')
-            $txtB.Text = (T 'Dieser Hinweis wurde bestätigt am {0}.') -f (Format-Timestamp $d.AcceptedAt 'dd.MM.yyyy HH:mm')
+            $txtB.Text = (T 'Dieser Hinweis wurde bestätigt am {0}.') -f (Format-Timestamp $d.AcceptedAt (Get-DateFormat))
             $txtB.Visibility = 'Visible'
         }
 

@@ -1,4 +1,4 @@
-# D2R Char Backup Manager
+﻿# D2R Char Backup Manager
 
 A desktop tool for backing up, organising and restoring local *Diablo II:
 Resurrected* characters. PowerShell + WPF, no installation, no server, no
@@ -80,11 +80,11 @@ subfolder is invisible to the game. Parking uses exactly that: the character's f
 set is moved to `_Projekte\<project>\` inside the save folder. Nothing is deleted,
 nothing is rewritten.
 
-![Park dialog](screenshots/park-dialog.png)
-
 Parked characters stay visible inside the program — greyed out and italic, with
 their project in the last column — so you never lose track of what you put away.
 Bringing them back is the same move in reverse.
+
+![Parked characters in the list](screenshots/parked-characters.png)
 
 **A backup of every character is taken before parking it, and this cannot be
 switched off.** A backup is a copy; a parked character is the original in a
@@ -117,7 +117,7 @@ different place. Delete the project folder and it is gone.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-89 checks covering header parsing, backing up, restoring, renaming, the folder
+92 checks covering header parsing, backing up, restoring, renaming, the folder
 layout, stash behaviour, safety copies, deleting, parking and bringing back. They
 run against a throwaway sandbox under `%TEMP%` and never touch a real save folder.
 Green under Windows PowerShell 5.1 **and** PowerShell 7.4.

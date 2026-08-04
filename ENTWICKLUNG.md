@@ -93,7 +93,7 @@ unangetastet, zu jedem der Pflicht-Snapshot im Backup, `_INFO.txt` geschrieben.
 Bei einem Charakter wanderten auch `.ctlo`/`.keyo` mit — richtig so, das sind seine
 Tastenbelegungen, und `Get-CharacterFiles` greift über den Basisnamen.
 
-`Test-Sandbox.ps1` deckt 89 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 92 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen) und läuft grün
 unter Windows PowerShell 5.1 **und** PowerShell 7.4.
@@ -135,7 +135,7 @@ Sonst wartet das Skript auf einen Klick.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 89 Prüfungen gegen eine Wegwerf-Sandbox |
+| `Test-Sandbox.ps1` | 92 Prüfungen gegen eine Wegwerf-Sandbox |
 | `_versionen\<Version>\` | Quellstand je Version zum schnellen Zurückgehen |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
