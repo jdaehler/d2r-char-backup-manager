@@ -4,7 +4,7 @@ A desktop tool for backing up, organising and restoring local *Diablo II:
 Resurrected* characters. PowerShell + WPF, no installation, no server, no
 background process.
 
-![Main window](screenshots/main-window.png)
+![Main window](screenshots/main-window.jpg)
 
 Works with **offline characters only**. Online characters live on Blizzard's
 servers and cannot be backed up from outside.
@@ -82,9 +82,9 @@ nothing is rewritten.
 
 Parked characters stay visible inside the program — greyed out and italic, with
 their project in the last column — so you never lose track of what you put away.
-Bringing them back is the same move in reverse.
-
-![Parked characters in the list](screenshots/parked-characters.png)
+You can see four of them in the screenshot at the top: *Deadeye* and *Ironmaw* in
+"Hardcore run", *Emberfall* and *Grimward* in "Old heroes". Bringing them back is
+the same move in reverse.
 
 **A backup of every character is taken before parking it, and this cannot be
 switched off.** A backup is a copy; a parked character is the original in a
