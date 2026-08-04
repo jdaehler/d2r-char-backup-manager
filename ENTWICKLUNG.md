@@ -62,7 +62,7 @@ als Datei in den Verlauf. Sie bleiben liegen, weil sie auch ohne Git funktionier
 ## Stand
 
 **Sichern** läuft gegen die echten Spielstände. Stand 04.08.2026: 28 Charaktere, davon
-21 aktiv im Spielstand-Ordner und 7 geparkt im Projekt `FremdChars`; 79 Sicherungen.
+15 aktiv im Spielstand-Ordner und 13 geparkt im Projekt `FremdChars`; 86 Sicherungen.
 
 **Wiederherstellen** ist am 04.08.2026 zum ersten Mal gegen den echten Spielstand-Ordner
 gelaufen: `jdBarb` (Lvl 4 Barbar) unter dem freien Namen `TestKopie` wiederhergestellt,
@@ -92,6 +92,13 @@ verschoben, im Wurzelverzeichnis blieb von ihnen keine Datei, der Shared Stash
 unangetastet, zu jedem der Pflicht-Snapshot im Backup, `_INFO.txt` geschrieben.
 Bei einem Charakter wanderten auch `.ctlo`/`.keyo` mit — richtig so, das sind seine
 Tastenbelegungen, und `Get-CharacterFiles` greift über den Basisnamen.
+
+**Im Spiel bestätigt**, ebenfalls am 04.08.2026: Die geparkten Charaktere sind aus
+der Charakterauswahl von D2R verschwunden, und **Zurückholen wurde echt ausgeführt** —
+`Frenzy` kam aus `FremdChars` zurück in den Spielstand-Ordner und stand danach wieder
+in der Auswahl. Damit ist auch der Rückweg belegt, nicht nur der Hinweg. Das war die
+letzte offene Stelle vor der Veröffentlichung: ein Fehler beim Zurückholen sähe für
+den Nutzer nicht nach einem Fehler aus, sondern nach verlorenen Charakteren.
 
 `Test-Sandbox.ps1` deckt 97 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,

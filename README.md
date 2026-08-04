@@ -27,6 +27,21 @@ The [transparency section](#transparency-privacy-antivirus-and-your-account) bel
 answers what people ask first: does it phone home, does it touch the game, and can
 it get an account banned.
 
+### Written with AI assistance
+
+This program was developed together with an AI assistant (Claude), which is why
+every commit carries a `Co-Authored-By` line. Saying so here rather than leaving it
+to be discovered seemed the only honest option for a project whose whole pitch is
+that you can check it yourself.
+
+What that does and does not mean: the design decisions — folders instead of
+archives, a mandatory backup before parking, no automatic cleanup — were made by a
+human who uses the tool on his own characters. The 97 automated checks exist
+precisely because generated code needs evidence rather than trust, and the risky
+paths were additionally run against a real save folder and confirmed inside the
+game. None of that makes the code correct by decree; it is the reason it can be
+checked at all.
+
 ## What it does
 
 - **Back up** a single character, several at once, or the entire save folder in

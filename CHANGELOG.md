@@ -67,3 +67,9 @@ On 2026-08-04 the restore path ran against the real save folder for the first ti
 game: both characters appeared in the selection and the copy could be played.
 Checked with SHA-256 over the entire save folder before and after — no existing
 file changed, none disappeared, and only the five expected new files appeared.
+
+Parking was run against the real save folder the same day and confirmed in the
+game in both directions: parked characters were gone from the character selection,
+and one of them was brought back and appeared there again. The round trip matters
+more than the one-way journey — a fault while bringing a character back would not
+look like a fault to the user, it would look like a lost character.
