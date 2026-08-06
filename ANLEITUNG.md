@@ -114,11 +114,20 @@ zusätzlich Dinge, die in keiner Charakter-Sicherung stecken:
 ```
 Settings.json    Grafik, Ton, Tastenbelegung
 *.fltr           deine Item-Filter
-*.ctlo / *.keyo  Tastenbelegungen der Online-Charaktere
 ```
 
 Außerdem stammt bei *Alles sichern* garantiert alles aus derselben Sekunde. Das ist
 der Grund, warum ich sie beim Shared Stash empfehle (siehe unten).
+
+**Online-Charaktere bleiben außen vor.** Die Dateien `*.ctlo` und `*.keyo` werden
+nicht mitgesichert. Sie enthalten nur die Tastenbelegung deiner Battle.net-Charaktere
+— die Charaktere selbst liegen auf Blizzards Servern und lassen sich von hier aus
+weder sichern noch wiederherstellen. D2R räumt diese Dateien nie auf: auch für längst
+gelöschte Charaktere bleiben sie liegen, oft mit 0 Byte. In einem echten Ordner waren
+das nach zwei Jahren 97 von 114 Dateien. Sie fehlen zu lassen macht die Sicherung
+nicht nur übersichtlicher, sondern auch sicherer: sonst würde ein Wiederherstellen
+des kompletten Ordners die Belegung *sämtlicher* Online-Charaktere auf den Stand von
+damals zurückdrehen, obwohl du nur einen lokalen Charakter zurückholen wolltest.
 
 Übersprungen wird dabei nichts: Was du markierst, wird gesichert, auch wenn sich
 seit der letzten Sicherung nichts geändert hat. Die Statuszeile sagt dir hinterher,
@@ -265,7 +274,7 @@ index.json                                   alle Labels, Tags und Notizen
 Charaktere\<Name>\<Datum_Zeit> Lvl<n> <Klasse>\
     _INFO.txt, die Spielstanddateien, SharedStash\
 Kompletter Ordner\<Datum_Zeit>\
-    _INFO.txt, alle Dateien
+    _INFO.txt, alle Dateien außer den Online-Resten (*.ctlo, *.keyo)
 ```
 
 **Ordner statt ZIP, unkomprimiert** — das ist Absicht. Du sollst im Explorer sehen

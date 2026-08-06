@@ -86,7 +86,7 @@ On first start a notice about liability appears that has to be accepted once.
   Charaktere\<name>\<date_time> Lvl<n> <class>\
       _INFO.txt, the save files, SharedStash\
   Kompletter Ordner\<date_time>\
-      _INFO.txt, all files
+      _INFO.txt, every file except the online leftovers (*.ctlo, *.keyo)
 ```
 
 > **Why are those folder names German?** `Charaktere` ("characters"),

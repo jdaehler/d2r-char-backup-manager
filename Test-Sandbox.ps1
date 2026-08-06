@@ -32,6 +32,13 @@ New-FakeD2S (Join-Path $saves 'TestHC.d2s')    99 6 88 0x24
 foreach ($e in '.ctl','.key','.ma0','.map') { [System.IO.File]::WriteAllText((Join-Path $saves "TestBarb$e"), 'x') }
 [System.IO.File]::WriteAllText($stashPath, 'stash-soft')
 [System.IO.File]::WriteAllText((Join-Path $saves 'TestBarb143022.bak'), 'nicht-teil-des-chars')
+# Reste von Online-Charakteren: einmal unter fremdem Namen (so sieht es im echten
+# Ordner aus), einmal unter dem Namen eines lokalen Charakters - Letzteres prueft
+# den Filter auch im Charakter-Dateisatz.
+[System.IO.File]::WriteAllText((Join-Path $saves 'OnlineHeld176365355.ctlo'), 'online-steuerung')
+[System.IO.File]::WriteAllText((Join-Path $saves 'OnlineHeld176365355.keyo'), 'online-belegung')
+[System.IO.File]::WriteAllText((Join-Path $saves 'Geloescht99999999.ctlo'), '')
+[System.IO.File]::WriteAllText((Join-Path $saves 'TestBarb.ctlo'), 'gleicher-name-aber-online')
 
 $script:Config = [pscustomobject]@{ SavePath = $saves; BackupPath = $backup; ClassNames = $script:DefaultClassNames }
 Import-Index
@@ -55,7 +62,9 @@ Check "v99  Hardcore erkannt" ($i2.Hardcore)
 $files = Get-CharacterFiles 'TestBarb'
 Check "5 Dateien erkannt" ($files.Count -eq 5) $files.Count
 Check "zeitgestempelte .bak ausgeschlossen" (@($files | Where-Object { $_.Extension -eq '.bak' }).Count -eq 0)
+Check "gleichnamige .ctlo ausgeschlossen" (@($files | Where-Object { $_.Extension -eq '.ctlo' }).Count -eq 0)
 Check "2 Charaktere gelistet" ((Get-Characters).Count -eq 2)
+Check "Online-Reste sind keine Charaktere" (@(Get-Characters | Where-Object { $_.Name -like 'OnlineHeld*' -or $_.Name -like 'Geloescht*' }).Count -eq 0)
 
 "--- Snapshot anlegen ---"
 $snap = New-Snapshot -Kind char -CharName 'TestBarb' -Label 'Vor Uber' -Tags @('hardcore','test') -Note 'Notiz'
@@ -103,9 +112,16 @@ Check "Sicherheitskopie angelegt" ($script:Index.snapshots.Count -eq $before + 1
 Check "als Auto markiert" (@($script:Index.snapshots)[-1].automatic)
 
 "--- Gesamtstand ---"
-$expected = @(Get-ChildItem $saves -File | Where-Object { $_.Extension -ne '.bak' }).Count
+$alleImOrdner = @(Get-ChildItem $saves -File)
+$expected = @($alleImOrdner | Where-Object { $script:ExcludedExtensions -notcontains $_.Extension.ToLowerInvariant() }).Count
 $full = New-Snapshot -Kind full -Label 'Alles'
-Check "enthaelt alle Nicht-bak-Dateien ($expected)" ($full.fileCount -eq $expected) $full.fileCount
+Check "enthaelt alle nicht ausgeschlossenen Dateien ($expected)" ($full.fileCount -eq $expected) $full.fileCount
+Check "Ordner enthielt ueberhaupt Ausschlussware" (@($alleImOrdner).Count -gt $expected) "$(@($alleImOrdner).Count) vs $expected"
+$vollOrdner = Join-Path $backup $full.pfad
+Check "keine .ctlo in der Komplettsicherung" (@(Get-ChildItem $vollOrdner -File -Filter '*.ctlo').Count -eq 0)
+Check "keine .keyo in der Komplettsicherung" (@(Get-ChildItem $vollOrdner -File -Filter '*.keyo').Count -eq 0)
+$vollInfo = Get-Content (Join-Path $vollOrdner '_INFO.txt') -Raw
+Check "_INFO nennt die Online-Ausnahme" ($vollInfo -match 'Online-Charaktere sind nicht dabei')
 
 "--- Namenspruefung ---"
 Check "'Ab' gueltig"           ((Test-D2RName 'Ab') -eq '')
@@ -153,7 +169,9 @@ $p = Move-CharacterToProject -CharName 'TestBarb' -Project 'Alte Helden'
 Check "5 Dateien verschoben"            ($p.Files.Count -eq 5) $p.Files.Count
 Check "aus dem Spielstand-Ordner weg"   (-not (Test-Path (Join-Path $saves 'TestBarb.d2s')))
 Check "im Projektordner angekommen"     (Test-Path (Join-Path $projOrdner 'TestBarb.d2s'))
-Check "verschoben statt kopiert"        (@(Get-ChildItem $saves -File | Where-Object { $_.BaseName -eq 'TestBarb' }).Count -eq 0)
+Check "verschoben statt kopiert"        (@(Get-ChildItem $saves -File | Where-Object { $_.BaseName -eq 'TestBarb' -and $script:ExcludedExtensions -notcontains $_.Extension.ToLowerInvariant() }).Count -eq 0)
+Check "gleichnamige .ctlo bleibt liegen" (Test-Path (Join-Path $saves 'TestBarb.ctlo'))
+Check "Online-Datei nicht mitgeparkt"   (-not (Test-Path (Join-Path $projOrdner 'TestBarb.ctlo')))
 Check "Shared Stash bleibt liegen"      ([System.IO.File]::ReadAllText($stashPath) -eq $stashVor)
 Check "Stash nicht mitgewandert"        (-not (Test-Path (Join-Path $projOrdner 'ModernSharedStashSoftCoreV2.d2i')))
 Check "Pflicht-Snapshot angelegt"       (@($script:Index.snapshots).Count -eq $snapsVor + 1) @($script:Index.snapshots).Count

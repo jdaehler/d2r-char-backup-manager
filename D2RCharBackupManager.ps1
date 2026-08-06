@@ -29,7 +29,7 @@ foreach ($asm in 'PresentationFramework','PresentationCore','WindowsBase','Syste
 $script:AppName    = 'D2R Char Backup Manager'
 # Versionsnummer: steht im Fenstertitel und in der Statuszeile beim Start.
 # Bei Änderungen mitpflegen, die Liste dazu steht im README unter "Versionen".
-$script:AppVersion = '1.2'
+$script:AppVersion = '1.21'
 
 # Fassung des Haftungshinweises. Wird die Nummer erhöht, muss jeder Nutzer den
 # Hinweis erneut bestätigen - dafür ist sie da. Nur erhöhen, wenn sich der Text
@@ -41,11 +41,22 @@ $script:ConfigPath = Join-Path $script:ScriptDir 'config.json'
 $script:RestartRequested = $false
 $script:SkipViewSave     = $false   # nach "Ansicht zurücksetzen" gesetzt
 
-# Dateiendungen, die NICHT zum Charakter-Dateisatz gehören.
-# D2R legt selbst zeitgestempelte *.bak an (z.B. "Assassin182056.bak") - die
-# haben ohnehin einen anderen Basisnamen und werden durch den exakten
-# Namensvergleich schon ausgeschlossen. Hier nur zur Sicherheit.
-$script:ExcludedExtensions = @('.bak')
+# Dateiendungen, die NICHT gesichert werden - weder beim einzelnen Charakter
+# noch beim kompletten Ordner.
+#
+# .bak    D2R legt selbst zeitgestempelte *.bak an (z.B. "Assassin182056.bak") -
+#         die haben ohnehin einen anderen Basisnamen und werden durch den
+#         exakten Namensvergleich schon ausgeschlossen. Hier nur zur Sicherheit.
+# .ctlo   Steuerung und Tastenbelegung von ONLINE-Charakteren. Der Charakter
+# .keyo   selbst liegt auf Blizzards Servern, hier steht nur seine Belegung.
+#         D2R räumt diese Dateien nie auf: auch für längst gelöschte Online-
+#         Charaktere bleiben sie liegen, oft mit 0 Byte. Nach zwei Jahren waren
+#         das im echten Betrieb 97 von 114 Dateien - Ballast, der eine Sicherung
+#         unübersichtlich macht. Schlimmer beim Zurückspielen: das Wieder-
+#         herstellen eines kompletten Ordners würde die Belegung sämtlicher
+#         Online-Charaktere auf den Stand von damals zurückdrehen, obwohl nur
+#         ein lokaler Charakter gemeint war.
+$script:ExcludedExtensions = @('.bak', '.ctlo', '.keyo')
 
 # Klassen-IDs aus dem .d2s-Header. Über config.json erweiterbar, falls weitere
 # Klassen dazukommen - unbekannte IDs erscheinen als "Klasse <n> (?)".
@@ -489,7 +500,9 @@ function Write-SnapshotInfo {
     } else {
         $z += (T '2. Alle Dateien aus diesem Ordner (ohne _INFO.txt) in den')
         $z += (T '   Spielstand-Ordner kopieren und vorhandene ersetzen.')
-        $z += (T '   Achtung: das betrifft sämtliche Charaktere.')
+        $z += (T '   Achtung: das betrifft sämtliche lokalen Charaktere.')
+        $z += (T '   Online-Charaktere sind nicht dabei - sie liegen bei Blizzard')
+        $z += (T '   und bleiben von dieser Sicherung unberührt.')
     }
     [System.IO.File]::WriteAllLines((Join-Path $ordner '_INFO.txt'), $z, (New-Object System.Text.UTF8Encoding($true)))
 }
@@ -507,7 +520,9 @@ function Write-BackupLiesmich {
         (T '    mit allen Angaben und einer Anleitung zum Zurückkopieren.'),
         '',
         'Kompletter Ordner\<Datum_Zeit>\',
-        (T '    Eine Sicherung des kompletten Spielstand-Ordners.'),
+        (T '    Eine Sicherung des kompletten Spielstand-Ordners. Ohne die'),
+        (T '    Dateien der Online-Charaktere (*.ctlo, *.keyo) - die Charaktere'),
+        (T '    selbst liegen bei Blizzard, hier stünde nur ihre Tastenbelegung.'),
         '',
         'index.json',
         (T '    Labels, Tags und Notizen für das Programm. Geht diese Datei'),
@@ -1601,12 +1616,16 @@ $script:TextsEn = @{
     '   von damals gewünscht ist - der gilt für alle Charaktere.' = '   contents from back then - it applies to every character.'
     '2. Alle Dateien aus diesem Ordner (ohne _INFO.txt) in den' = '2. Copy all files from this folder (except _INFO.txt) into'
     '   Spielstand-Ordner kopieren und vorhandene ersetzen.' = '   the save folder, replacing the existing ones.'
-    '   Achtung: das betrifft sämtliche Charaktere.' = '   Careful: this affects every character.'
+    '   Achtung: das betrifft sämtliche lokalen Charaktere.' = '   Careful: this affects every local character.'
+    '   Online-Charaktere sind nicht dabei - sie liegen bei Blizzard' = '   Online characters are not included - they live at Blizzard'
+    '   und bleiben von dieser Sicherung unberührt.' = '   and this backup leaves them untouched.'
     'In diesem Ordner liegen die Sicherungen deiner D2R-Charaktere.' = 'This folder holds the backups of your D2R characters.'
     '    Eine Sicherung eines Charakters. Darin die Spielstanddateien,' = '    One backup of one character. Contains the save files,'
     '    im Unterordner SharedStash die gemeinsame Truhe, und _INFO.txt' = '    the shared stash in the SharedStash subfolder, and _INFO.txt'
     '    mit allen Angaben und einer Anleitung zum Zurückkopieren.' = '    with all details and instructions for copying it back.'
-    '    Eine Sicherung des kompletten Spielstand-Ordners.' = '    One backup of the entire save folder.'
+    '    Eine Sicherung des kompletten Spielstand-Ordners. Ohne die' = '    One backup of the entire save folder. Without the files'
+    '    Dateien der Online-Charaktere (*.ctlo, *.keyo) - die Charaktere' = '    of the online characters (*.ctlo, *.keyo) - those characters'
+    '    selbst liegen bei Blizzard, hier stünde nur ihre Tastenbelegung.' = '    live at Blizzard, only their key bindings would be here.'
     '    Labels, Tags und Notizen für das Programm. Geht diese Datei' = '    Labels, tags and notes for the program. If this file is'
     '    verloren, sind die Sicherungen selbst weiterhin benutzbar —' = '    lost, the backups themselves remain usable — only the'
     '    nur die Beschriftungen fehlen dann.' = '    labels are gone.'

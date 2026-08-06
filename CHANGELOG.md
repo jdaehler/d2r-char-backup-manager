@@ -3,6 +3,32 @@
 Newest entry first. The version number lives in `$script:AppVersion` and is shown
 in the window title and on the right of the status bar.
 
+## 1.21 — 2026-08-06
+
+Numbering follows Diablo II itself from here on (1.09, 1.13c, 1.14d): the part
+after the dot counts up as a whole, so the next small release is 1.22, not 1.3.
+
+- **Online characters are no longer backed up.** The files `*.ctlo` and `*.keyo`
+  are now excluded everywhere: from the whole-folder backup, from the file count
+  shown before it, and from a character's file set. They only ever held the key
+  bindings of Battle.net characters — the characters themselves live on Blizzard's
+  servers and this program can neither back them up nor restore them.
+- Why it matters beyond tidiness: D2R never deletes these files, not even for
+  characters deleted long ago, so they pile up (in a real folder, 97 files out of
+  114 after two years). Restoring a whole folder used to copy all of them back,
+  rolling the bindings of *every* online character to their state at backup time
+  when the point was to bring back one local character. That cannot happen now —
+  the files are neither saved nor written back.
+- Which extensions belong to online characters was verified against the Blizzard
+  D2R forums, not guessed: online characters use `.ctlo` and `.keyo` and nothing
+  else; `.d2s`, `.ctl`, `.key`, `.map` and `.ma0`–`.ma3` are local. See
+  `ENTWICKLUNG.md`.
+- Test suite extended: the sandbox now seeds online leftovers, including one that
+  shares its base name with a local character, and checks that they stay out of
+  both backup kinds and out of parking.
+- Older backups keep the files they were made with. Nothing about them changes,
+  and restoring one still works.
+
 ## 1.2 — 2026-08-04
 
 - **Liability notice on first start.** Has to be accepted once, otherwise the

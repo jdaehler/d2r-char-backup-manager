@@ -113,11 +113,19 @@ one also contains things no character backup holds:
 ```
 Settings.json    graphics, sound, key bindings
 *.fltr           your item filters
-*.ctlo / *.keyo  key bindings of your online characters
 ```
 
 On top of that, everything in it comes from the same second. That is why I recommend
 it for the shared stash case (see below).
+
+**Online characters are left out.** The files `*.ctlo` and `*.keyo` are not backed
+up. They only hold the key bindings of your Battle.net characters — the characters
+themselves live on Blizzard's servers and can neither be backed up nor restored from
+here. D2R never cleans these files up: they stay behind even for characters deleted
+long ago, often at 0 bytes. In a real folder that came to 97 files out of 114 after
+two years. Leaving them out does not just make a backup easier to read, it makes it
+safer: otherwise restoring a whole folder would roll the bindings of *every* online
+character back to how they were then, when all you wanted was one local character.
 
 Nothing is skipped: whatever you select gets backed up, even if nothing changed
 since the last backup. The status bar tells you afterwards if a backup is identical
@@ -263,7 +271,7 @@ index.json                                   all labels, tags and notes
 Charaktere\<name>\<date_time> Lvl<n> <class>\
     _INFO.txt, the save files, SharedStash\
 Kompletter Ordner\<date_time>\
-    _INFO.txt, all files
+    _INFO.txt, every file except the online leftovers (*.ctlo, *.keyo)
 ```
 
 > **Why are those names German?** `Charaktere` ("characters"), `Kompletter Ordner`

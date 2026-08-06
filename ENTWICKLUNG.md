@@ -94,8 +94,10 @@ Spielstand-Ordner entfernt worden — vorher gesichert nach
 Charaktere in ein Projekt `FremdChars`. Nachgeprüft — alle sieben vollständig
 verschoben, im Wurzelverzeichnis blieb von ihnen keine Datei, der Shared Stash
 unangetastet, zu jedem der Pflicht-Snapshot im Backup, `_INFO.txt` geschrieben.
-Bei einem Charakter wanderten auch `.ctlo`/`.keyo` mit — richtig so, das sind seine
-Tastenbelegungen, und `Get-CharacterFiles` greift über den Basisnamen.
+Bei einem Charakter wanderten damals auch `.ctlo`/`.keyo` mit, weil
+`Get-CharacterFiles` über den Basisnamen greift. Das wurde seinerzeit als richtig
+notiert — **ist es nicht**, und seit 1.21 passiert es nicht mehr: siehe
+*Online-Charaktere bleiben draußen*.
 
 **Im Spiel bestätigt**, ebenfalls am 04.08.2026: Die geparkten Charaktere sind aus
 der Charakterauswahl von D2R verschwunden, und **Zurückholen wurde echt ausgeführt** —
@@ -104,10 +106,46 @@ in der Auswahl. Damit ist auch der Rückweg belegt, nicht nur der Hinweg. Das wa
 letzte offene Stelle vor der Veröffentlichung: ein Fehler beim Zurückholen sähe für
 den Nutzer nicht nach einem Fehler aus, sondern nach verlorenen Charakteren.
 
-`Test-Sandbox.ps1` deckt 97 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+### Online-Charaktere bleiben draußen
+
+Geprüft am 06.08.2026, Anlass: eine Komplettsicherung des Zweitkontos ergab
+**114 Dateien für einen einzigen lokalen Charakter**. Aufgeschlüsselt waren das
+66 `.ctlo`, 31 `.keyo`, 8 `.fltr`, 2 `.json`, 2 `.key` und je eine `.ctl`, `.d2i`,
+`.d2s`, `.ma0`, `.map`. Also 97 von 114 Dateien Online-Reste, viele mit 0 Byte und
+aus 2024 — D2R räumt sie nie auf, auch nicht für längst gelöschte Charaktere.
+
+Welche Endungen zu Online-Charakteren gehören, wurde nachgeschlagen statt geraten
+(Blizzard-Forum, „Savegames Offline vs. Online", und zweite Quelle bestätigend):
+
+| gehört zu | Endungen |
+|---|---|
+| Online (Battle.net) | `.ctlo`, `.keyo` — **und nur diese** |
+| Lokal (Einzelspieler) | `.d2s`, `.ctl`, `.key`, `.map`, `.ma0`–`.ma3` |
+
+Ein `.mapo` oder `.ma0o` gibt es nicht: die Automap-Daten von Online-Charakteren
+liegen wie der Charakter selbst auf Blizzards Servern. Die Endungsliste ist damit
+vollständig, nicht bloß eine Näherung. Das Suffix `o` ist durchgehend die
+Online-Variante der jeweiligen lokalen Endung.
+
+Verworfen wurde die Idee, den Ausschluss abschaltbar zu machen. Die Dateien haben
+keinen Sicherungswert — der Charakter, zu dem sie gehören, lässt sich von hier aus
+ohnehin nicht sichern —, und ein Schalter hätte nur eine Frage aufgeworfen, auf die
+es keine sinnvolle zweite Antwort gibt.
+
+Der Ausschluss sitzt in `$script:ExcludedExtensions` und wirkt dadurch an allen drei
+Stellen gleichzeitig: `Get-CharacterFiles` (Dateisatz eines Charakters, damit auch
+Parken), `New-Snapshot -Kind full` (Komplettsicherung) und die Vorschau-Zählung im
+Knopf *Alles sichern*.
+
+Ältere Sicherungen behalten, was in ihnen liegt. Wiederherstellen kopiert nur und
+löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
+unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
+sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
+
+`Test-Sandbox.ps1` deckt 105 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
-Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen) und läuft grün
-unter Windows PowerShell 5.1 **und** PowerShell 7.4.
+Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
+Online-Dateien) und läuft grün unter Windows PowerShell 5.1 **und** PowerShell 7.4.
 
 ```
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
