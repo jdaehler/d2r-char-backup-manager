@@ -19,8 +19,8 @@ hinweis*.png
 Thumbs.db
 desktop.ini
 
-# Quellstände früherer Versionen. Bleiben lokal liegen als Rückweg, der ohne
-# Git funktioniert - im Repository wären sie überflüssig, weil die Historie
-# dasselbe leistet. Fertige Pakete gehören als GitHub-Release ans Tag, nicht
-# als Datei in den Verlauf.
+# Quellstände früherer Versionen. Der Ordner ist am 06.08.2026 gelöscht worden,
+# die Historie leistet dasselbe - die Zeile bleibt, damit ein versehentlich
+# wieder angelegter Ordner nicht doch im Repository landet. Fertige Pakete
+# gehören als GitHub-Release ans Tag, nicht als Datei in den Verlauf.
 _versionen/

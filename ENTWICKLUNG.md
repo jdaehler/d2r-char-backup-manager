@@ -53,11 +53,15 @@ sowie rechts in der Statuszeile. Bei Änderungen mitpflegen.
 Was sich je Version geändert hat, steht in [CHANGELOG.md](CHANGELOG.md) — bewusst
 nur dort, damit die Liste nicht an zwei Stellen auseinanderläuft.
 
-Der Quellstand jeder Version liegt zusätzlich lokal unter `_versionen\<Version>\` —
-komplett, mit `_INFO.txt`, die das Zurückgehen erklärt. Dafür reicht Zurückkopieren,
-das Programm braucht keine Installation. Diese Ordner sind **nicht** im Repository:
-die Historie leistet dasselbe, und fertige Pakete gehören als Release ans Tag statt
-als Datei in den Verlauf. Sie bleiben liegen, weil sie auch ohne Git funktionieren.
+Frühere Stände liegen im Git, nicht als Ordnerkopie. Bis 1.1 gab es dafür lokal
+`_versionen\<Version>\`; seit das Projekt am 04.08.2026 ein Repository ist, leistet
+die Historie dasselbe besser, deshalb ist der Ordner am 06.08.2026 gelöscht worden.
+**Vor einer Erweiterung wird also nichts mehr weggesichert** — es reicht, mit sauberem
+Arbeitsbaum anzufangen und die fertige Version zu taggen. Die alten Stände 1.0 und 1.1
+sind nicht verloren: sie stecken vollständig im ersten Commit `0a8d98e` und lassen sich
+mit `git show 0a8d98e:_versionen/1.1/D2RCharBackupManager.ps1` oder
+`git checkout 0a8d98e -- _versionen` wiederholen. Fertige Pakete gehören weiterhin als
+Anhang an ein Release, nicht in den Verlauf.
 
 ## Stand
 
@@ -172,7 +176,6 @@ offen ist. Genau dann will man aber oft rendern.
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
 | `Test-Sandbox.ps1` | 97 Prüfungen gegen eine Wegwerf-Sandbox |
-| `_versionen\<Version>\` | Quellstand je Version zum schnellen Zurückgehen |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
 | `Demo-Umgebung.ps1` | startbare Demo mit erfundenen Daten, zum Screenshots machen |
@@ -281,7 +284,7 @@ zusätzlich noch alte Datensätze mit `zip`; geschrieben wird dieses Format nich
 Ein Skript `Migrate-Backups.ps1` hat den Altbestand einmalig umgestellt — 65 von 65 am
 03.08.2026, mit Sicherheitskopie. Es liegt **nicht mehr im Projekt**: einmalige
 Migrationen gehören nicht ins Repo, wo sie jemand versehentlich starten kann. Falls es
-je wieder gebraucht wird, liegt es in `_versionen\1.0\` und `_versionen\1.1\`.
+je wieder gebraucht wird: `git show 0a8d98e:_versionen/1.1/Migrate-Backups.ps1`.
 
 ## Warum Umbenennen gefahrlos ist
 
