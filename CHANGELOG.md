@@ -5,8 +5,10 @@ in the window title and on the right of the status bar.
 
 ## 1.21 — 2026-08-06
 
-Numbering follows Diablo II itself from here on (1.09, 1.13c, 1.14d): the part
-after the dot counts up as a whole, so the next small release is 1.22, not 1.3.
+Numbering follows Diablo II itself from here on (1.09, 1.10, 1.13c, 1.14d): two
+digits after the dot, always. So the next small release is 1.22 and a larger step
+is 1.30 — written with the zero, which is what keeps the order unambiguous however
+you read it. The earlier 1.2 is to be read as 1.20.
 
 - **Online characters are no longer backed up.** The files `*.ctlo` and `*.keyo`
   are now excluded everywhere: from the whole-folder backup, from the file count
