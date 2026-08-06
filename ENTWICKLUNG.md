@@ -352,8 +352,33 @@ Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünsch
    Der Shared Stash wird **nicht** mitkopiert — er gehört allen Charakteren gemeinsam.
 3. **Löschen.** Nur für „soll wirklich weg" — wer den Charakter bloß aus der
    Charakterauswahl haben will, parkt ihn. Zwingender Snapshot davor (wie beim Parken,
-   nicht abschaltbar) und Verschieben in den **Papierkorb** statt hartem Löschen. Damit
-   ist es sicherer als das Löschen in D2R selbst, das endgültig und ohne Sicherung ist.
+   nicht abschaltbar) und Verschieben in einen **eigenen Papierkorb-Ordner** statt hartem
+   Löschen. Damit ist es sicherer als das Löschen in D2R selbst, das endgültig und ohne
+   Sicherung ist. Einzelheiten unten.
+
+### Papierkorb als eigener Ordner
+
+Vom Captain am 06.08.2026 festgelegt: **eigener Ordner, nicht der Windows-Papierkorb.**
+Aus dem Windows-Papierkorb legt ein „Wiederherstellen" im Explorer die Dateien direkt
+an den Ursprungsort zurück — der Charakter stünde wieder in der D2R-Auswahl, ohne dass
+das Programm davon weiß. Ein eigener Ordner passt außerdem zum Rest: Ordner statt ZIP,
+im Explorer sichtbar, auch ohne das Programm zurückzukopieren.
+
+- **Ort:** `<Backup-Ordner>\_Papierkorb\`, also neben den Sicherungen und **nicht** im
+  Spielstand-Ordner. So bleibt der Save-Ordner sauber und der Papierkorb wandert beim
+  Cowork-Backup von selbst mit.
+- **Ein Unterordner je Löschung:** `2026-08-06_1432_jdBarb\` mit `_INFO.txt` wie bei den
+  Sicherungen — der Zeitstempel muss rein, derselbe Name kann mehrfach gelöscht werden.
+- **Kein automatisches Leeren, keine Altersgrenze.** Nur anzeigen, wie viel drin liegt,
+  und „Papierkorb leeren" von Hand. Etwas, das ungefragt Charaktere endgültig entsorgt,
+  gehört nicht in dieses Programm.
+- **Zurückholen über den vorhandenen Pfad:** Ein Papierkorb-Eintrag hat dasselbe Format
+  wie ein Snapshot. Als eigene Art (`kind = 'trash'`) im Index geführt, funktioniert
+  `Restore-Snapshot` sofort — samt Zurückholen unter anderem Namen. Preis: der Eintrag
+  erscheint in der Sicherungsliste und braucht dort Kennzeichnung und Filter.
+- Liegt der Backup-Ordner auf einem anderen Laufwerk als die Spielstände, ist das
+  Verschieben ein Kopieren mit anschließendem Löschen. Erst nach erfolgreichem Kopieren
+  löschen, und bei nicht erreichbarem Backup-Ziel das Löschen gar nicht erst anbieten.
 
 **Gemeinsame Basis, einmal bauen:** Dateisatz eines Charakters ermitteln, `Test-D2RRunning`,
 Pflicht-Snapshot, Namensprüfung mit Kollisionstest — und der muss **geparkte** Charaktere
