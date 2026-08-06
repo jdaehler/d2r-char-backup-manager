@@ -338,6 +338,38 @@ sie als „Klasse *n* (?)" und lassen sich in `config.json` unter `ClassNames` n
 Erledigt: der Wiederherstellen-Pfad ist am 04.08.2026 echt gelaufen und im Spiel bestätigt
 (siehe *Stand*) — bis dahin der größte blinde Fleck des Programms.
 
+## Geplant: Charakter-Aktionen (aufgenommen 06.08.2026)
+
+Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünscht:
+
+1. **Umbenennen.** Alle Dateien des Charakters gleich umbenennen. Kein Eingriff in die
+   Datei, siehe *Warum Umbenennen gefahrlos ist*. Heute nur als Umweg möglich: sichern,
+   dann im Wiederherstellen-Dialog das Namensfeld ändern — dabei bleibt der alte
+   Charakter stehen und muss von Hand weg.
+2. **Duplizieren / Klonen mit Namensangabe.** Dateisatz unter neuem Namen kopieren.
+   Der Pfad existiert im Grunde schon (`Restore-Snapshot` mit abweichendem Namen), der
+   Knopf wäre die Abkürzung: Snapshot anlegen, sofort unter neuem Namen zurückschreiben.
+   Der Shared Stash wird **nicht** mitkopiert — er gehört allen Charakteren gemeinsam.
+3. **Löschen.** Nur für „soll wirklich weg" — wer den Charakter bloß aus der
+   Charakterauswahl haben will, parkt ihn. Zwingender Snapshot davor (wie beim Parken,
+   nicht abschaltbar) und Verschieben in den **Papierkorb** statt hartem Löschen. Damit
+   ist es sicherer als das Löschen in D2R selbst, das endgültig und ohne Sicherung ist.
+
+**Gemeinsame Basis, einmal bauen:** Dateisatz eines Charakters ermitteln, `Test-D2RRunning`,
+Pflicht-Snapshot, Namensprüfung mit Kollisionstest — und der muss **geparkte** Charaktere
+in `_Projekte\` mit einschließen, sonst kollidiert ein neuer Name unbemerkt mit einem
+geparkten Dateisatz. Reihenfolge: Umbenennen zuerst (validiert die Basis), dann
+Duplizieren (fast geschenkt), dann Löschen.
+
+**Vor dem Bau zu klären:** die echten Namensregeln von D2R (Länge, erlaubte Zeichen,
+Bindestrich/Unterstrich) — nachschlagen, nicht raten. Ein Name, den das Tool zulässt und
+das Spiel nicht, erzeugt einen Charakter, der in der Auswahl fehlt.
+
+**Bewusst abgewogen:** Mit diesen drei Aktionen wird der Backup-Manager wieder ein Stück
+Char-Manager — wovon der Programmname am 03.08.2026 gerade weg wollte. Vertretbar, solange
+jede dieser Aktionen einen Snapshot erzwingt, das Sichern also der Grund bleibt, warum sie
+überhaupt im Programm sind.
+
 ## Fallstricke, die schon Blut gekostet haben
 
 - `0xAA55AA55` **nicht** als Hex-Literal vergleichen: Windows PowerShell 5.1 liest das als
