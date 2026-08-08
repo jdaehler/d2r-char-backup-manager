@@ -165,6 +165,7 @@ function New-DefaultView {
         ColsSnaps    = $null   # Spaltenbreiten der Snapshot-Liste
         HideAuto     = $false
         HidePark     = $false
+        HideTrash    = $false
         OnlySelected = $false
     }
 }
@@ -436,6 +437,13 @@ function Export-Index {
 
 function Get-CharsDir { Join-Path $script:Config.BackupPath 'Charaktere' }
 function Get-FullDir  { Join-Path $script:Config.BackupPath 'Kompletter Ordner' }
+# Eigener Papierkorb, ausdrücklich nicht der von Windows: aus dem legt ein
+# "Wiederherstellen" im Explorer die Dateien direkt an den Ursprungsort zurück,
+# der Charakter stünde also wieder in der D2R-Auswahl, ohne dass dieses Programm
+# davon weiß. Er liegt neben den Sicherungen und nicht im Spielstand-Ordner -
+# so bleibt der Save-Ordner sauber und der Papierkorb wandert beim Sichern des
+# Backup-Ordners von selbst mit.
+function Get-TrashDir { Join-Path $script:Config.BackupPath '_Papierkorb' }
 
 function Get-SnapshotOrdner {
     param([object]$Record)
@@ -468,7 +476,11 @@ function Write-SnapshotInfo {
     $z = @("$script:AppName $script:AppVersion", '')
     function Zeile($k, $v) { '{0,-16}{1}' -f ((T $k) + ':'), $v }
 
-    if ($Record.kind -eq 'char') {
+    # Ein Papierkorb-Eintrag ist im Aufbau ein Charakter-Snapshot - nur dass hier
+    # die Originaldateien liegen und nicht eine Kopie davon.
+    $istPapierkorb = ($Record.kind -eq 'trash')
+
+    if ($Record.kind -ne 'full') {
         $z += Zeile 'Charakter' $Record.char
         $z += Zeile 'Klasse'    $Record.className
         $z += Zeile 'Level'     $Record.level
@@ -476,7 +488,17 @@ function Write-SnapshotInfo {
     } else {
         $z += Zeile 'Typ' (T 'Kompletter Ordner')
     }
-    $z += Zeile 'Gesichert am' (Format-Timestamp $Record.created)
+    if ($istPapierkorb) {
+        $z += Zeile 'Gelöscht am' (Format-Timestamp $Record.created)
+        $z += ''
+        $z += (T 'Dieser Charakter wurde gelöscht und liegt hier im Papierkorb.')
+        $z += (T 'Die Dateien in diesem Ordner sind die Originale - keine Kopie.')
+        $z += (T 'Zusätzlich wurde vor dem Löschen eine Sicherung angelegt; die')
+        $z += (T 'bleibt auch dann bestehen, wenn der Papierkorb geleert wird.')
+        $z += ''
+    } else {
+        $z += Zeile 'Gesichert am' (Format-Timestamp $Record.created)
+    }
     if ($Record.label) { $z += Zeile 'Label' $Record.label }
     if (@($Record.tags).Count -gt 0) { $z += Zeile 'Tags' (@($Record.tags) -join ', ') }
     if ($Record.note)  { $z += Zeile 'Notiz' (($Record.note -split '\r?\n') -join ' / ') }
@@ -487,7 +509,7 @@ function Write-SnapshotInfo {
     $z += (T 'VON HAND WIEDERHERSTELLEN')
     $z += '-' * 60
     $z += (T '1. D2R beenden.')
-    if ($Record.kind -eq 'char') {
+    if ($Record.kind -ne 'full') {
         $z += (T '2. Die Dateien aus diesem Ordner (ohne _INFO.txt und ohne den')
         $z += (T '   Unterordner SharedStash) in den Spielstand-Ordner kopieren')
         $z += (T '   und vorhandene ersetzen.')
@@ -759,9 +781,14 @@ function Restore-Snapshot {
     }
     if (-not (Test-Path -LiteralPath $script:Config.SavePath)) { throw "Der Spielstand-Ordner existiert nicht: $($script:Config.SavePath)" }
 
+    # Ein Papierkorb-Eintrag ist im Aufbau ein Charakter-Snapshot und wird hier
+    # genauso behandelt - deshalb "nicht full" statt "gleich char". Damit lässt
+    # sich Gelöschtes über denselben Weg zurückholen, auch unter anderem Namen.
+    $istChar = ($Snapshot.kind -ne 'full')
+
     # Sicherheitskopie des aktuellen Zustands, bevor irgendetwas überschrieben wird.
     if (-not $SkipSafetyBackup) {
-        if ($Snapshot.kind -eq 'char') {
+        if ($istChar) {
             $existing = if ($TargetName) { Get-CharacterFiles $TargetName } else { Get-CharacterFiles $Snapshot.char }
             if ($existing.Count -gt 0) {
                 New-Snapshot -Kind char -CharName $(if ($TargetName) { $TargetName } else { $Snapshot.char }) `
@@ -780,7 +807,7 @@ function Restore-Snapshot {
         foreach ($f in (Get-ChildItem -LiteralPath $ordner -File)) {
             if ($f.Name -eq '_INFO.txt') { continue }
             $ziel = $f.Name
-            if ($Snapshot.kind -eq 'char' -and $TargetName) {
+            if ($istChar -and $TargetName) {
                 # Der Name steckt nur im Dateinamen - Endung bleibt, Basisname wird ersetzt.
                 $ziel = $TargetName + $f.Extension
             }
@@ -1091,6 +1118,139 @@ function Copy-Character {
         Snapshot         = $snap
         D2RStartedDuring = (Test-D2RRunning)
     }
+}
+
+# Löscht einen Charakter, indem sein Dateisatz in den Papierkorb wandert. Damit
+# ist es sicherer als das Löschen in D2R selbst, das endgültig ist und ohne
+# Sicherung auskommt.
+#
+# Zwei Netze übereinander, mit Absicht: der Pflicht-Snapshot ist eine Kopie und
+# bleibt auch dann liegen, wenn der Papierkorb geleert wird - der
+# Papierkorb-Eintrag enthält die Originale und ist der schnelle Rückweg.
+#
+# Wer einen Charakter nur aus der Charakterauswahl haben will, parkt ihn. Das
+# hier ist für "soll wirklich weg".
+function Remove-CharacterToTrash {
+    param([string]$CharName)
+
+    if (-not $CharName) { throw (T 'Kein Charakter angegeben.') }
+    if (Test-D2RRunning) { throw (T 'D2R läuft. Zum Löschen muss das Spiel beendet sein.') }
+
+    # Ohne erreichbaren Backup-Ordner gäbe es weder Sicherung noch Papierkorb.
+    # Dann wird gar nicht erst angefangen, statt auf halbem Weg zu scheitern.
+    if (-not $script:Config.BackupPath -or -not (Test-Path -LiteralPath $script:Config.BackupPath)) {
+        throw (T 'Der Backup-Ordner ist nicht erreichbar. Ohne ihn gibt es weder Sicherung noch Papierkorb, deshalb wird nicht gelöscht.')
+    }
+
+    $dateien = @(Get-CharacterFiles $CharName | Where-Object { $_.Extension.ToLowerInvariant() -ne '.d2i' })
+    if ($dateien.Count -eq 0) { throw ((T 'Zu diesem Charakter wurden keine Dateien gefunden:') + " $CharName") }
+
+    $snap = New-Snapshot -Kind char -CharName $CharName `
+                         -Label (T 'Automatisch vor dem Löschen') -Tags @('auto','geloescht') -Automatic
+    if (-not $snap) { throw (T 'Die Sicherung vor dem Löschen ist fehlgeschlagen - es wurde nichts gelöscht.') }
+
+    # Zeitstempel muss in den Ordnernamen: derselbe Charakter kann mehrfach
+    # gelöscht werden, etwa nachdem er zwischendurch zurückgeholt wurde.
+    $stempel = Get-Date -Format 'yyyy-MM-dd_HHmmss'
+    $wurzel  = Get-TrashDir
+    if (-not (Test-Path -LiteralPath $wurzel)) { New-Item -ItemType Directory -Path $wurzel -Force | Out-Null }
+    $ordner = New-SnapshotOrdner -Basis $wurzel -Name (ConvertTo-SichererName ("{0}_{1}" -f $stempel, $CharName))
+
+    # Erst kopieren, prüfen, dann löschen - nie umgekehrt. Liegt der
+    # Backup-Ordner auf einem anderen Laufwerk, ist das Verschieben ohnehin ein
+    # Kopieren mit anschließendem Löschen; so ist die Reihenfolge in beiden
+    # Fällen dieselbe und ein Abbruch mittendrin kostet keine Datei.
+    $kopiert = @()
+    foreach ($f in $dateien) {
+        $ziel = Join-Path $ordner $f.Name
+        Copy-Item -LiteralPath $f.FullName -Destination $ziel -Force
+        if (-not (Test-Path -LiteralPath $ziel) -or (Get-Item -LiteralPath $ziel).Length -ne $f.Length) {
+            throw ((T 'Eine Datei ließ sich nicht in den Papierkorb kopieren, es wurde nichts gelöscht:') + " $($f.Name)")
+        }
+        $kopiert += $f
+    }
+
+    $entfernt = @()
+    foreach ($f in $kopiert) {
+        Remove-Item -LiteralPath $f.FullName -Force
+        $entfernt += $f.Name
+    }
+
+    $basisPfad = $script:Config.BackupPath.TrimEnd('\')
+    $groesse   = (Get-ChildItem -LiteralPath $ordner -Recurse -File | Measure-Object Length -Sum).Sum
+
+    # Als eigene Art im Index geführt, aber mit demselben Aufbau wie ein
+    # Snapshot: dadurch holt Restore-Snapshot den Eintrag ohne Sonderweg zurück,
+    # auch unter anderem Namen.
+    $record = [pscustomobject]@{
+        id            = '{0}-{1:x4}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), (Get-Random -Maximum 65535)
+        kind          = 'trash'
+        automatic     = $false
+        char          = $CharName
+        label         = (T 'Gelöscht')
+        tags          = @('papierkorb')
+        note          = ''
+        created       = (Get-Date).ToString('o')
+        pfad          = $ordner.Substring($basisPfad.Length + 1)
+        sizeBytes     = [long]$groesse
+        fileCount     = $entfernt.Count
+        includesStash = $false
+        d2rRunning    = (Test-D2RRunning)
+        contentHash   = ''
+        className     = $snap.className
+        level         = $snap.level
+        hardcore      = $snap.hardcore
+        snapshotId    = $snap.id      # die Kopie, die auch ein geleerter Papierkorb nicht mitnimmt
+    }
+
+    $script:Index.snapshots += $record
+    Export-Index
+    Write-SnapshotInfo $record
+
+    [pscustomobject]@{
+        Char             = $CharName
+        Files            = @($entfernt)
+        Snapshot         = $snap
+        Trash            = $record
+        D2RStartedDuring = (Test-D2RRunning)
+    }
+}
+
+# Wie viel liegt im Papierkorb? Für die Anzeige und die Rückfrage vor dem Leeren.
+function Get-TrashStats {
+    $eintraege = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
+    [pscustomobject]@{
+        Count = $eintraege.Count
+        Bytes = [long](@($eintraege | ForEach-Object { [long]$_.sizeBytes }) | Measure-Object -Sum).Sum
+    }
+}
+
+# Papierkorb leeren. Passiert ausschließlich auf ausdrücklichen Wunsch: kein
+# automatisches Aufräumen, keine Altersgrenze. Etwas, das ungefragt Charaktere
+# endgültig entsorgt, gehört nicht in ein Sicherungsprogramm.
+#
+# Die Pflicht-Snapshots von damals bleiben liegen - endgültig ist hier also nur
+# der schnelle Rückweg, nicht der Charakter.
+function Clear-Trash {
+    $eintraege = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
+    $geleert = 0
+    foreach ($e in $eintraege) {
+        $ordner = Get-SnapshotOrdner $e
+        if ($ordner -and (Test-Path -LiteralPath $ordner)) {
+            [System.IO.Directory]::Delete($ordner, $true)
+        }
+        $geleert++
+    }
+    $script:Index.snapshots = @($script:Index.snapshots | Where-Object { $_.kind -ne 'trash' })
+    Export-Index
+
+    # Die Wurzel selbst nur entfernen, wenn nichts Fremdes darin liegt.
+    $wurzel = Get-TrashDir
+    if ((Test-Path -LiteralPath $wurzel) -and
+        @(Get-ChildItem -LiteralPath $wurzel -Force).Count -eq 0) {
+        Remove-Item -LiteralPath $wurzel -Force
+    }
+    $geleert
 }
 
 function Move-CharacterToProject {
@@ -1467,6 +1627,11 @@ $MainXaml = @'
                       ToolTip="Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen."/>
               <Button x:Name="BtnCopy" Style="{StaticResource IconButton}" Content="&#xE8C8;" Margin="0,0,6,4"
                       ToolTip="Legt eine Kopie des markierten Charakters unter neuem Namen an. Das Original bleibt stehen, der Shared Stash wird nicht mitkopiert."/>
+              <!-- Löschen steht hinter einem Trenner und ist rot: es ist die
+                   einzige Aktion hier, die etwas wegnimmt. -->
+              <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
+              <Button x:Name="BtnDeleteChar" Style="{StaticResource IconButton}" Content="&#xE74D;" Foreground="#B00020" Margin="0,0,0,4"
+                      ToolTip="Löscht den markierten Charakter. Vorher wird gesichert, und die Dateien wandern in den Papierkorb des Programms statt sofort weg. Wer den Charakter nur aus der Spielauswahl nehmen will, parkt ihn."/>
             </WrapPanel>
           </GroupBox>
         </WrapPanel>
@@ -1508,21 +1673,28 @@ $MainXaml = @'
             <Button x:Name="BtnRestore" Style="{StaticResource NormalButton}" Margin="0,0,6,4">Wiederherstellen...</Button>
             <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4">Löschen</Button>
             <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
+            <Button x:Name="BtnEmptyTrash" Style="{StaticResource IconButton}" Content="&#xE74D;" Foreground="#B00020" Margin="0,0,6,4"
+                    ToolTip="Leert den Papierkorb. Die dort liegenden Charaktere sind danach endgültig weg - die Sicherungen, die vor dem Löschen angelegt wurden, bleiben aber bestehen."/>
             <Button x:Name="BtnOpenBackup" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="0,0,0,4"
                     ToolTip="Backup-Ordner im Explorer anzeigen"/>
           </WrapPanel>
         </GroupBox>
 
+        <!-- WrapPanel statt StackPanel: mit dem dritten Häkchen passt die Zeile
+             nicht mehr in jede Fensterbreite und wurde am rechten Rand
+             abgeschnitten. So bricht sie um, statt etwas zu verstecken. -->
         <Border Grid.Row="1" Padding="4,2,4,6">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Suche:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <TextBox x:Name="TxtSearch" Width="180" VerticalAlignment="Center"
+          <WrapPanel Orientation="Horizontal">
+            <TextBlock Text="Suche:" VerticalAlignment="Center" Margin="0,2,6,2"/>
+            <TextBox x:Name="TxtSearch" Width="180" VerticalAlignment="Center" Margin="0,2,0,2"
                      ToolTip="Sucht in Charaktername, Label, Tags und Notiz"/>
-            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="14,0,6,0"/>
-            <ComboBox x:Name="CmbTag" Width="150" VerticalAlignment="Center"/>
-            <CheckBox x:Name="ChkOnlySelected" Content="nur gewählter Charakter" VerticalAlignment="Center" Margin="14,0,0,0"/>
-            <CheckBox x:Name="ChkHideAuto" Content="Auto-Sicherungen ausblenden" VerticalAlignment="Center" Margin="14,0,0,0"/>
-          </StackPanel>
+            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="14,2,6,2"/>
+            <ComboBox x:Name="CmbTag" Width="150" VerticalAlignment="Center" Margin="0,2,0,2"/>
+            <CheckBox x:Name="ChkOnlySelected" Content="nur gewählter Charakter" VerticalAlignment="Center" Margin="14,2,0,2"/>
+            <CheckBox x:Name="ChkHideAuto" Content="Auto-Sicherungen ausblenden" VerticalAlignment="Center" Margin="14,2,0,2"/>
+            <CheckBox x:Name="ChkHideTrash" Content="Papierkorb ausblenden" VerticalAlignment="Center" Margin="14,2,0,2"
+                      ToolTip="Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts."/>
+          </WrapPanel>
         </Border>
 
         <GroupBox Grid.Row="2" Header="Snapshots">
@@ -2073,6 +2245,41 @@ $script:TextsEn = @{
     'Duplizieren abgebrochen.' = 'Duplicating cancelled.'
     "Kopie von '{0}' liegt als '{1}' bereit - {2} Datei(en), Original unverändert." = "Copy of '{0}' is ready as '{1}' - {2} file(s), original unchanged."
     'D2R wurde während des Duplizierens gestartet. Die Kopie ist vollständig, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while duplicating. The copy is complete, but please check in the game that everything is right.'
+
+    # Löschen und Papierkorb
+    'Papierkorb' = 'Recycle bin'
+    'Charakter löschen' = 'Delete character'
+    'Papierkorb leeren' = 'Empty the recycle bin'
+    'Papierkorb ausblenden' = 'Hide recycle bin'
+    'Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts.' = 'Hides deleted characters from the list. It changes nothing about the recycle bin itself.'
+    'Löscht den markierten Charakter. Vorher wird gesichert, und die Dateien wandern in den Papierkorb des Programms statt sofort weg. Wer den Charakter nur aus der Spielauswahl nehmen will, parkt ihn.' = 'Deletes the selected character. A backup is made first, and the files move into the program''s own recycle bin instead of vanishing. To only take a character out of the game''s selection, park it instead.'
+    'Leert den Papierkorb. Die dort liegenden Charaktere sind danach endgültig weg - die Sicherungen, die vor dem Löschen angelegt wurden, bleiben aber bestehen.' = 'Empties the recycle bin. The characters in it are gone for good afterwards - but the backups made before each deletion remain.'
+    "Charakter '{0}' ({1}, Level {2}) wirklich löschen?" = "Really delete character '{0}' ({1}, level {2})?"
+    'Vorher wird automatisch gesichert, und die Dateien wandern in den Papierkorb des Programms - sie sind also nicht sofort weg.' = 'A backup is made first, and the files move into the program''s own recycle bin - so they are not gone right away.'
+    'Wer den Charakter nur aus der Charakterauswahl von D2R nehmen will, sollte ihn stattdessen parken.' = 'To only take the character out of the D2R character selection, park it instead.'
+    'D2R läuft. Zum Löschen muss das Spiel beendet sein.' = 'D2R is running. The game must be closed before deleting.'
+    'D2R läuft gerade. Zum Löschen muss das Spiel beendet sein.' = 'D2R is currently running. The game must be closed before deleting.'
+    'Der Backup-Ordner ist nicht erreichbar. Ohne ihn gibt es weder Sicherung noch Papierkorb, deshalb wird nicht gelöscht.' = 'The backup folder cannot be reached. Without it there is neither a backup nor a recycle bin, so nothing is deleted.'
+    'Automatisch vor dem Löschen' = 'Automatic, before deleting'
+    'Die Sicherung vor dem Löschen ist fehlgeschlagen - es wurde nichts gelöscht.' = 'The backup before deleting failed - nothing was deleted.'
+    'Eine Datei ließ sich nicht in den Papierkorb kopieren, es wurde nichts gelöscht:' = 'A file could not be copied into the recycle bin, nothing was deleted:'
+    'Gelöscht' = 'Deleted'
+    'Bitte links genau einen Charakter auswählen. Gelöscht wird immer einer nach dem anderen.' = 'Please select exactly one character on the left. Deleting is done one at a time.'
+    'Dieser Charakter ist geparkt. Zum Löschen muss er erst zurückgeholt werden.' = 'This character is parked. Bring it back before deleting.'
+    'Löschen abgebrochen.' = 'Deleting cancelled.'
+    "'{0}' ist gelöscht - {1} Datei(en) im Papierkorb, Sicherung angelegt." = "'{0}' is deleted - {1} file(s) in the recycle bin, backup made."
+    'D2R wurde während des Löschens gestartet. Die Dateien sind vollständig im Papierkorb, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while deleting. The files are fully in the recycle bin, but please check in the game that everything is right.'
+    'Der Papierkorb ist leer.' = 'The recycle bin is empty.'
+    '{0} gelöschte(r) Charakter(e) liegen im Papierkorb, zusammen {1}.' = '{0} deleted character(s) are in the recycle bin, {1} in total.'
+    'Beim Leeren werden diese Dateien endgültig entfernt.' = 'Emptying removes those files for good.'
+    'Die Sicherungen, die vor jedem Löschen angelegt wurden, bleiben bestehen - über sie lässt sich ein Charakter auch danach noch zurückholen.' = 'The backups made before each deletion remain - a character can still be brought back through them afterwards.'
+    'Leeren abgebrochen.' = 'Emptying cancelled.'
+    'Papierkorb geleert - {0} Eintrag/Einträge entfernt.' = 'Recycle bin emptied - {0} entry/entries removed.'
+    'Gelöscht am' = 'Deleted on'
+    'Dieser Charakter wurde gelöscht und liegt hier im Papierkorb.' = 'This character was deleted and is sitting here in the recycle bin.'
+    'Die Dateien in diesem Ordner sind die Originale - keine Kopie.' = 'The files in this folder are the originals - not a copy.'
+    'Zusätzlich wurde vor dem Löschen eine Sicherung angelegt; die' = 'A backup was made before deleting as well; that one'
+    'bleibt auch dann bestehen, wenn der Papierkorb geleert wird.' = 'remains even when the recycle bin is emptied.'
 }
 
 function T {
@@ -2140,7 +2347,11 @@ function ConvertTo-SnapshotRow($Record) {
     # Auto-Kennzeichnung als Zusatz, nicht als eigener Typ: sonst erschiene eine
     # automatische Gesamtstand-Sicherung als "Gesamtstand", verschwände aber
     # trotzdem beim Filter "Auto-Sicherungen ausblenden".
-    $kindStr = if ($Record.kind -eq 'full') { T 'Kompletter Ordner' } else { T 'Charakter' }
+    $kindStr = switch ($Record.kind) {
+        'full'  { T 'Kompletter Ordner' }
+        'trash' { T 'Papierkorb' }
+        default { T 'Charakter' }
+    }
     if ($Record.automatic) { $kindStr += ' (Auto)' }
     $row | Add-Member NoteProperty KindStr $kindStr -Force
     $row | Add-Member NoteProperty TagStr     $tags -Force
@@ -2218,6 +2429,7 @@ $TxtSearch       = $win.FindName('TxtSearch')
 $CmbTag          = $win.FindName('CmbTag')
 $ChkOnlySelected = $win.FindName('ChkOnlySelected')
 $ChkHideAuto     = $win.FindName('ChkHideAuto')
+$ChkHideTrash    = $win.FindName('ChkHideTrash')
 $ChkHidePark     = $win.FindName('ChkHidePark')
 $ColLinks        = $win.FindName('ColLinks')
 $TxtLabel        = $win.FindName('TxtLabel')
@@ -2300,6 +2512,7 @@ function Save-View {
     $v.ColsChars = Get-ColWidths $GridChars
     $v.ColsSnaps = Get-ColWidths $GridSnaps
     $v.HideAuto     = [bool]$ChkHideAuto.IsChecked
+    $v.HideTrash    = [bool]$ChkHideTrash.IsChecked
     $v.HidePark     = [bool]$ChkHidePark.IsChecked
     $v.OnlySelected = [bool]$ChkOnlySelected.IsChecked
     try { Export-Config } catch { }
@@ -2328,6 +2541,7 @@ function Restore-View {
     Set-ColWidths $GridSnaps $v.ColsSnaps
 
     if ($ChkHideAuto)     { $ChkHideAuto.IsChecked     = [bool]$v.HideAuto }
+    if ($ChkHideTrash)    { $ChkHideTrash.IsChecked    = [bool]$v.HideTrash }
     if ($ChkHidePark)     { $ChkHidePark.IsChecked     = [bool]$v.HidePark }
     if ($ChkOnlySelected) { $ChkOnlySelected.IsChecked = [bool]$v.OnlySelected }
 }
@@ -2455,6 +2669,10 @@ function Update-SnapshotGrid {
 
     if ($ChkHideAuto.IsChecked) {
         $rows = @($rows | Where-Object { -not $_.automatic })
+    }
+
+    if ($ChkHideTrash.IsChecked) {
+        $rows = @($rows | Where-Object { $_.kind -ne 'trash' })
     }
 
     $GridSnaps.ItemsSource = @($rows | Sort-Object SortKey -Descending)
@@ -2903,6 +3121,7 @@ $TxtSearch.Add_TextChanged({ Update-SnapshotGrid })
 $CmbTag.Add_SelectionChanged({ Update-SnapshotGrid })
 $ChkOnlySelected.Add_Click({ Update-SnapshotGrid; Save-View })
 $ChkHideAuto.Add_Click({ Update-SnapshotGrid; Save-View })
+$ChkHideTrash.Add_Click({ Update-SnapshotGrid; Save-View })
 
 # Update-All statt nur die Liste neu zu setzen: die Auswahl und die Zahl im
 # Sichern-Knopf müssen mitziehen, wenn Zeilen verschwinden.
@@ -3123,6 +3342,95 @@ $win.FindName('BtnCopy').Add_Click({
             (T 'D2R wurde während des Duplizierens gestartet. Die Kopie ist vollständig, aber prüfe im Spiel, ob alles stimmt.'),
             $script:AppName, 'OK', 'Warning')
     }
+})
+
+$win.FindName('BtnDeleteChar').Add_Click({
+    $rows = @(Get-SelectedCharRows)
+    if ($rows.Count -ne 1) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Bitte links genau einen Charakter auswählen. Gelöscht wird immer einer nach dem anderen.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $row = $rows[0]
+    if ($row.Parked) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Dieser Charakter ist geparkt. Zum Löschen muss er erst zurückgeholt werden.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    if (Test-D2RRunning) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'D2R läuft gerade. Zum Löschen muss das Spiel beendet sein.'),
+            $script:AppName, 'OK', 'Warning')
+        return
+    }
+
+    # Rückfrage mit Namen, Klasse und Level ausgeschrieben: bei einer
+    # Mehrfachauswahl von Charakteren mit ähnlichen Namen ist der markierte
+    # schnell ein anderer als der gemeinte.
+    $frage = ((T "Charakter '{0}' ({1}, Level {2}) wirklich löschen?") -f $row.Name, $row.ClassName, $row.Level) + "`n`n" +
+             (T 'Vorher wird automatisch gesichert, und die Dateien wandern in den Papierkorb des Programms - sie sind also nicht sofort weg.') + "`n`n" +
+             (T 'Wer den Charakter nur aus der Charakterauswahl von D2R nehmen will, sollte ihn stattdessen parken.')
+    if ([System.Windows.MessageBox]::Show($frage, (T 'Charakter löschen'), 'YesNo', 'Warning') -ne 'Yes') {
+        Set-Status (T 'Löschen abgebrochen.')
+        return
+    }
+
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $erg = Remove-CharacterToTrash -CharName $row.Name
+    } catch {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+        [void][System.Windows.MessageBox]::Show($_.Exception.Message, $script:AppName, 'OK', 'Warning')
+        Update-All
+        return
+    } finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+
+    Update-All
+    Set-Status ((T "'{0}' ist gelöscht - {1} Datei(en) im Papierkorb, Sicherung angelegt.") -f $erg.Char, $erg.Files.Count)
+
+    if ($erg.D2RStartedDuring) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'D2R wurde während des Löschens gestartet. Die Dateien sind vollständig im Papierkorb, aber prüfe im Spiel, ob alles stimmt.'),
+            $script:AppName, 'OK', 'Warning')
+    }
+})
+
+$win.FindName('BtnEmptyTrash').Add_Click({
+    $stat = Get-TrashStats
+    if ($stat.Count -eq 0) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Der Papierkorb ist leer.'), $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $frage = ((T '{0} gelöschte(r) Charakter(e) liegen im Papierkorb, zusammen {1}.') -f $stat.Count, (Format-Size $stat.Bytes)) + "`n`n" +
+             (T 'Beim Leeren werden diese Dateien endgültig entfernt.') + "`n`n" +
+             (T 'Die Sicherungen, die vor jedem Löschen angelegt wurden, bleiben bestehen - über sie lässt sich ein Charakter auch danach noch zurückholen.')
+    if ([System.Windows.MessageBox]::Show($frage, (T 'Papierkorb leeren'), 'YesNo', 'Warning') -ne 'Yes') {
+        Set-Status (T 'Leeren abgebrochen.')
+        return
+    }
+
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $anzahl = Clear-Trash
+    } catch {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+        [void][System.Windows.MessageBox]::Show($_.Exception.Message, $script:AppName, 'OK', 'Warning')
+        Update-All
+        return
+    } finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+
+    Update-All
+    Set-Status ((T 'Papierkorb geleert - {0} Eintrag/Einträge entfernt.') -f $anzahl)
 })
 
 $win.FindName('BtnUnpark').Add_Click({

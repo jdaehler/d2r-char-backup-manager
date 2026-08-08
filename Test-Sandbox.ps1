@@ -485,6 +485,89 @@ Check "bei laufendem D2R abgelehnt"     (Duplizieren-Scheitert 'neuerHeld' 'Spae
 Check "dabei nichts angelegt"           (-not (Test-Path (Join-Path $saves 'SpaeterMal.d2s')))
 $script:FakeD2RRunning = $false
 
+"--- Loeschen: ab in den Papierkorb ---"
+New-FakeD2S (Join-Path $saves 'Opferlamm.d2s') 105 3 55 0x20
+foreach ($e in '.ctl','.key','.ma0') { [System.IO.File]::WriteAllText((Join-Path $saves "Opferlamm$e"), 'x') }
+[System.IO.File]::WriteAllText((Join-Path $saves 'Opferlamm.ctlo'), 'online')
+$snapsVorL = @($script:Index.snapshots).Count
+$stashVorL = [System.IO.File]::ReadAllText($stashPath)
+
+$l = Remove-CharacterToTrash -CharName 'Opferlamm'
+Check "aus dem Spielstand-Ordner weg"   (-not (Test-Path (Join-Path $saves 'Opferlamm.d2s')))
+Check "Begleitdatei mit weg"            (-not (Test-Path (Join-Path $saves 'Opferlamm.ma0')))
+Check "4 Dateien entfernt"              ($l.Files.Count -eq 4) $l.Files.Count
+Check "Online-Rest blieb liegen"        (Test-Path (Join-Path $saves 'Opferlamm.ctlo'))
+Check "Shared Stash unangetastet"       ([System.IO.File]::ReadAllText($stashPath) -eq $stashVorL)
+
+$trashOrdner = Join-Path $backup $l.Trash.pfad
+Check "Papierkorb-Ordner angelegt"      (Test-Path $trashOrdner)
+Check "liegt unter _Papierkorb"         ($l.Trash.pfad -like '_Papierkorb*') $l.Trash.pfad
+Check "Ordnername nennt Datum und Name" ((Split-Path $trashOrdner -Leaf) -match '^\d{4}-\d{2}-\d{2}_\d{6}_Opferlamm$') (Split-Path $trashOrdner -Leaf)
+Check "Dateien liegen im Papierkorb"    (Test-Path (Join-Path $trashOrdner 'Opferlamm.d2s'))
+Check "_INFO.txt geschrieben"           (Test-Path (Join-Path $trashOrdner '_INFO.txt'))
+$tinfo = Get-Content (Join-Path $trashOrdner '_INFO.txt') -Raw
+Check "_INFO nennt das Loeschen"        ($tinfo -match 'Papierkorb')
+Check "_INFO nennt die Sicherung"       ($tinfo -match 'Sicherung angelegt')
+
+# Zwei Eintraege: die Sicherung (Kopie) und der Papierkorb-Eintrag (Originale).
+Check "zwei Index-Eintraege dazu"       (@($script:Index.snapshots).Count -eq ($snapsVorL + 2)) @($script:Index.snapshots).Count
+Check "Papierkorb-Eintrag als trash"    ($l.Trash.kind -eq 'trash')
+Check "Eintrag kennt seine Sicherung"   ($l.Trash.snapshotId -eq $l.Snapshot.id)
+Check "Sicherung ist eine echte Kopie"  (Test-Path (Join-Path (Join-Path $backup $l.Snapshot.pfad) 'Opferlamm.d2s'))
+Check "Level im Eintrag uebernommen"    ($l.Trash.level -eq 55) $l.Trash.level
+
+"--- Geloeschten zurueckholen ---"
+# Der Papierkorb-Eintrag hat denselben Aufbau wie ein Snapshot, deshalb muss der
+# gewoehnliche Rueckweg ihn ohne Sonderbehandlung zurueckholen.
+$zurueck = @(Restore-Snapshot -Snapshot $l.Trash -SkipSafetyBackup)
+Check "wieder im Spielstand-Ordner"     (Test-Path (Join-Path $saves 'Opferlamm.d2s'))
+Check "alle 4 Dateien zurueck"          ($zurueck.Count -eq 4) $zurueck.Count
+$li = Get-D2SInfo (Join-Path $saves 'Opferlamm.d2s')
+Check "Datei intakt (Paladin Lvl 55)"   ($li.Valid -and $li.ClassName -eq 'Paladin' -and $li.Level -eq 55)
+# Und unter anderem Namen, wie bei jedem anderen Eintrag auch.
+$zurueck2 = @(Restore-Snapshot -Snapshot $l.Trash -TargetName 'Wiedergaenger' -SkipSafetyBackup)
+Check "auch unter neuem Namen"          (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
+Check "neuer Name intakt"               ((Get-D2SInfo (Join-Path $saves 'Wiedergaenger.d2s')).Level -eq 55)
+
+"--- Loeschen: was abgelehnt wird ---"
+$snapsVorLA = @($script:Index.snapshots).Count
+function Loeschen-Scheitert($name) {
+  try { $null = Remove-CharacterToTrash -CharName $name; return $false } catch { return $true }
+}
+Check "unbekannter Charakter abgelehnt" (Loeschen-Scheitert 'GibtEsNicht')
+
+$script:FakeD2RRunning = $true
+Check "bei laufendem D2R abgelehnt"     (Loeschen-Scheitert 'Wiedergaenger')
+Check "Charakter noch da"               (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
+$script:FakeD2RRunning = $false
+
+# Ohne erreichbaren Backup-Ordner gaebe es weder Sicherung noch Papierkorb.
+# Dann wird gar nicht erst angefangen, statt auf halbem Weg zu scheitern.
+$backupEcht = $script:Config.BackupPath
+$script:Config.BackupPath = Join-Path $root 'gibt-es-nicht'
+Check "ohne Backup-Ordner abgelehnt"    (Loeschen-Scheitert 'Wiedergaenger')
+$script:Config.BackupPath = $backupEcht
+Check "Charakter unversehrt"            (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
+Check "kein Snapshot bei Ablehnung"     (@($script:Index.snapshots).Count -eq $snapsVorLA) @($script:Index.snapshots).Count
+
+"--- Papierkorb leeren ---"
+$null = Remove-CharacterToTrash -CharName 'Wiedergaenger'
+$stat = Get-TrashStats
+Check "Papierkorb zaehlt Eintraege"     ($stat.Count -ge 2) $stat.Count
+Check "Papierkorb kennt seine Groesse"  ($stat.Bytes -gt 0) $stat.Bytes
+
+$sicherungen = @($script:Index.snapshots | Where-Object { $_.kind -eq 'char' }).Count
+$geleert = Clear-Trash
+Check "Leeren meldet die Anzahl"        ($geleert -eq $stat.Count) $geleert
+Check "Papierkorb-Ordner verschwunden"  (-not (Test-Path $trashOrdner))
+Check "_Papierkorb-Wurzel mit weg"      (-not (Test-Path (Join-Path $backup '_Papierkorb')))
+Check "keine trash-Eintraege mehr"      (@($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' }).Count -eq 0)
+# Der eigentliche Punkt: endgueltig ist nur der schnelle Rueckweg, nicht der
+# Charakter. Die Sicherungen von vor dem Loeschen muessen liegen bleiben.
+Check "Sicherungen bleiben bestehen"    (@($script:Index.snapshots | Where-Object { $_.kind -eq 'char' }).Count -eq $sicherungen)
+Check "Sicherung noch auf der Platte"   (Test-Path (Join-Path (Join-Path $backup $l.Snapshot.pfad) 'Opferlamm.d2s'))
+Check "leerer Papierkorb meldet 0"      ((Get-TrashStats).Count -eq 0)
+
 "--- Einzelinstanz ---"
 # Der Mutex verhindert, dass zwei Fenster dieselbe index.json beschreiben.
 Check "erste Instanz bekommt die Sperre" (Enter-EinzelInstanz)

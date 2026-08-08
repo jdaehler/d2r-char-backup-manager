@@ -142,7 +142,7 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 193 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 230 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
 Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
@@ -237,7 +237,7 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 193 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `Test-Sandbox.ps1` | 230 Prüfungen gegen die Sandbox in `_sandbox\` |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
