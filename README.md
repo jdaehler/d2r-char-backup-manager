@@ -125,9 +125,9 @@ nothing is rewritten.
 
 Parked characters stay visible inside the program — greyed out and italic, with
 their project in the last column — so you never lose track of what you put away.
-You can see four of them in the screenshot at the top: *Deadeye* and *Ironmaw* in
-"Hardcore run", *Emberfall* and *Grimward* in "Old heroes". Bringing them back is
-the same move in reverse.
+A checkbox hides them from the list when they are in the way; that changes the
+display only, never the parking itself. Bringing them back is the same move in
+reverse.
 
 **A backup of every character is taken before parking it, and this cannot be
 switched off.** A backup is a copy; a parked character is the original in a
