@@ -106,6 +106,18 @@ in der Auswahl. Damit ist auch der Rückweg belegt, nicht nur der Hinweg. Das wa
 letzte offene Stelle vor der Veröffentlichung: ein Fehler beim Zurückholen sähe für
 den Nutzer nicht nach einem Fehler aus, sondern nach verlorenen Charakteren.
 
+**Umbenennen** ist am 08.08.2026 gegen die echten Spielstände gelaufen, vom Captain
+selbst ausgeführt und für gut befunden: `Amazone_Poison` (Level 47 Amazone) heißt
+seitdem `jdAmazonePoison`. Nachgeprüft im Spielstand-Ordner — alle sechs Dateien sind
+mitgewandert (`.d2s`, `.ctl`, `.key`, `.ma0`, `.ma1`, `.map`), unter dem alten Namen
+blieb nichts liegen, und der Pflicht-Snapshot steht als *Automatisch vor dem
+Umbenennen* im Index. Damit ist auch der Grenzfall belegt, der zur Umstellung der
+Namensprüfung geführt hat: der alte Name enthielt einen Unterstrich, der neue keinen.
+
+**Noch nicht echt gelaufen:** Duplizieren und Löschen. Beide bisher nur gegen die
+Sandbox geprüft. Beim Löschen wäre der echte Durchlauf am wichtigsten — dort wandern
+Originaldateien.
+
 ### Online-Charaktere bleiben draußen
 
 Geprüft am 06.08.2026, Anlass: eine Komplettsicherung des Zweitkontos ergab
