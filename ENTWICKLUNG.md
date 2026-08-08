@@ -404,6 +404,27 @@ sie als „Klasse *n* (?)" und lassen sich in `config.json` unter `ClassNames` n
 Erledigt: der Wiederherstellen-Pfad ist am 04.08.2026 echt gelaufen und im Spiel bestätigt
 (siehe *Stand*) — bis dahin der größte blinde Fleck des Programms.
 
+## Verworfen: D2R aus dem Programm heraus starten
+
+Am 08.08.2026 überlegt und **bewusst gelassen**. Der Wunsch war naheliegend: Nach dem
+Parken oder Zurückholen ist das Fenster ohnehin offen, ein Knopf würde den Umweg über
+Battle.net sparen. Technisch wäre es klein.
+
+Dagegen sprach das Transparenzversprechen im README, das dort wörtlich steht:
+
+> „…never injects anything, **never starts or stops it**."
+
+Ein Startknopf macht diesen Satz unwahr. Er ließe sich ehrlich umschreiben — aber der
+Abschnitt ist der Grund, warum jemand dieses Programm überhaupt an seine Spielstände
+lässt, und die Bequemlichkeit von einem gesparten Klick wiegt das nicht auf. Dazu käme,
+dass ein PowerShell-Skript, das eine `.exe` startet, genau das Muster ist, auf das
+Virenscanner-Heuristik anspringt — und das Programm hat dieses Problem ohnehin schon.
+
+Falls es später doch kommt: Der Weg führt über das Battle.net-Protokoll bzw. den
+Launcher-Pfad aus der Registry (**nachschlagen, nicht raten**), nur auf Klick, niemals
+automatisch, und ohne jede Möglichkeit, das Spiel zu *beenden*. Beide README-Abschnitte
+— Transparenz und Virenscanner — müssten mit geändert werden, im selben Commit.
+
 ## Geplant: Charakter-Aktionen (aufgenommen 06.08.2026)
 
 Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünscht:
