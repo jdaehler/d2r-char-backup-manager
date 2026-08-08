@@ -1,6 +1,15 @@
 ﻿$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, System.IO.Compression, System.IO.Compression.FileSystem -EA SilentlyContinue
 
+# Ohne STA laesst sich kein WPF-Fenster bauen, und die Pruefung der
+# Live-Namenspruefung baut eines. Windows PowerShell 5.1 und PowerShell 7 starten
+# auf Windows beide mit STA - am 08.08.2026 nachgemessen, in PS7 also kein
+# Sonderfall. Wer aber mit -Mta startet, bekaeme sonst einen kryptischen Fehler
+# aus der Tiefe von WPF statt einer Ansage, was fehlt.
+if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+    throw 'Dieser Testlauf braucht STA. Bitte mit dem Schalter -Sta starten.'
+}
+
 $src = Join-Path $PSScriptRoot 'D2RCharBackupManager.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($src, [ref]$null, [ref]$null)
 foreach ($a in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst]}, $false)) {
@@ -13,9 +22,30 @@ foreach ($f in $ast.FindAll({param($n) $n -is [System.Management.Automation.Lang
   Invoke-Expression $f.Extent.Text
 }
 
-$root   = Join-Path $env:TEMP ('d2rtest-' + [guid]::NewGuid().ToString('N').Substring(0,8))
+# Die D2R-Erkennung wird fuer den Testlauf ersetzt. Die Sandbox arbeitet in
+# einem Wegwerf-Ordner unter TEMP und hat mit dem echten Spiel nichts zu tun -
+# ohne diesen Ersatz braeche der Testlauf ab, sobald jemand gerade spielt, und
+# der Fall "D2R laeuft" waere ueberhaupt nicht pruefbar, weil man ihn nicht auf
+# Kommando herstellen kann. Im Programm bleibt der Schutz unangetastet: dort
+# fuehrt der einzige Get-Process-Aufruf durch genau diese eine Funktion, ueber
+# die auch alle Aufrufstellen laufen.
+$script:FakeD2RRunning = $false
+function Test-D2RRunning { $script:FakeD2RRunning }
+
+# Feste Sandbox neben dem Skript statt eines Wegwerf-Ordners unter TEMP: sie
+# bleibt nach dem Lauf stehen, damit man hineinsehen kann, was die Tests gebaut
+# haben. Zu Beginn wird sie geleert - die Tests brauchen einen bekannten
+# Ausgangszustand, sonst faenden sie Snapshots vom letzten Durchlauf vor.
+$root   = Join-Path $PSScriptRoot '_sandbox'
 $saves  = Join-Path $root 'saves'
 $backup = Join-Path $root 'backup'
+
+# Sicherung gegen ein falsch gesetztes $root: hier wird rekursiv geloescht, und
+# das darf ausschliesslich den Ordner "_sandbox" neben diesem Skript treffen.
+if ((Split-Path $root -Leaf) -ne '_sandbox' -or (Split-Path $root -Parent) -ne $PSScriptRoot) {
+    throw "Sandbox-Pfad sieht falsch aus, es wird nichts geloescht: $root"
+}
+if (Test-Path -LiteralPath $root) { [System.IO.Directory]::Delete($root, $true) }
 New-Item -ItemType Directory -Path $saves, $backup -Force | Out-Null
 
 function New-FakeD2S($Path, $Version, $ClassId, $Level, $Status) {
@@ -255,6 +285,31 @@ Check "Parked-Kennzeichen gesetzt"      ($g1[0].Parked)
 Check "Level bleibt lesbar (42)"        ($g1[0].Level -eq 42) $g1[0].Level
 Check "Get-AllCharacters zeigt beide"   (@(Get-AllCharacters).Count -eq (@(Get-Characters).Count + $geparkt.Count))
 
+"--- D2R laeuft: die Sperren greifen ---"
+# Dieser Fall liess sich vorher gar nicht pruefen. Jetzt wird das laufende Spiel
+# vorgetaeuscht, statt darauf zu warten, dass zufaellig gerade jemand spielt.
+$script:FakeD2RRunning = $true
+$snapsD = @($script:Index.snapshots).Count
+
+$kamP = $false
+try { $null = Move-CharacterToProject -CharName 'TestHC' -Project 'Verboten' } catch { $kamP = $true }
+Check "Parken abgelehnt"                $kamP
+Check "TestHC blieb im Spielstand"      (Test-Path (Join-Path $saves 'TestHC.d2s'))
+Check "Projektordner nicht angelegt"    (-not (Test-Path (Join-Path $projWurzel 'Verboten')))
+Check "kein Snapshot entstanden"        (@($script:Index.snapshots).Count -eq $snapsD)
+
+$kamR = $false
+try { $null = Restore-CharacterFromProject -Project 'Alte Helden' -CharName 'TestBarb' } catch { $kamR = $true }
+Check "Zurueckholen abgelehnt"          $kamR
+Check "geparkte Datei unangetastet"     (Test-Path (Join-Path $projOrdner 'TestBarb.d2s'))
+
+# Sichern muss trotzdem gehen: es liest nur. Verboten ist das Verschieben, nicht
+# das Kopieren - sonst koennte man vor dem Spielen nicht schnell sichern.
+$snapLauf = New-Snapshot -Kind char -CharName 'TestHC' -Label 'Waehrend D2R laeuft'
+Check "Sichern bleibt erlaubt"          ($null -ne $snapLauf)
+
+$script:FakeD2RRunning = $false
+
 "--- Parken: Namenskollision im Projekt ---"
 New-FakeD2S (Join-Path $saves 'TestBarb.d2s') 105 4 42 0x20
 $snapsVor2 = @($script:Index.snapshots).Count
@@ -379,8 +434,8 @@ Check "sichtbare Texte gefunden (>150)" ($sichtbar.Count -gt 150) $sichtbar.Coun
 Check "TextsEn gefuellt (>200)"         ($script:TextsEn.Count -gt 200) $script:TextsEn.Count
 Check "jeder sichtbare Text hat eine englische Fassung" ($ohne.Count -eq 0) ("`n         " + (($ohne | Sort-Object) -join "`n         "))
 
-[System.IO.Directory]::Delete($root, $true)
 ""
 "ERGEBNIS: $pass bestanden, $fail fehlgeschlagen"
+"Sandbox bleibt stehen: $root"
 
 

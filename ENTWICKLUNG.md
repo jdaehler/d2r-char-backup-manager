@@ -142,17 +142,41 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 105 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 139 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
-Online-Dateien) und läuft grün unter Windows PowerShell 5.1 **und** PowerShell 7.4.
+Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
+Windows PowerShell 5.1 **und** PowerShell 7.4 — beides am 08.08.2026 nachgemessen.
 
 ```
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-Der Test legt seine Sandbox unter `%TEMP%` an und räumt sie wieder auf. Er fasst den
-echten Spielstand-Ordner nicht an.
+Der Testlauf baut inzwischen echte WPF-Fenster und braucht dafür **STA**. Beide
+PowerShell-Versionen starten auf Windows von sich aus mit STA — am 08.08.2026
+nachgemessen, auch PowerShell 7 — der Schalter `-Sta` oben schadet also nicht,
+nötig ist er nicht. Wer mit `-Mta` startet, bekommt eine klare Ansage statt eines
+kryptischen Fehlers aus der Tiefe von WPF; das prüft das Skript in der ersten Zeile.
+
+### Sandbox: fester Ordner, kein Wegwerf unter %TEMP%
+
+Seit 08.08.2026 liegt die Spielwiese fest unter `_sandbox\` **neben dem Skript**, nicht
+mehr unter `%TEMP%\d2rtest-<zufall>\`. Sie wird zu Beginn jedes Laufs geleert und neu
+aufgebaut — die Tests brauchen einen bekannten Ausgangszustand — und bleibt danach
+**stehen**. Genau das ist der Zweck: Nach einem Fehlschlag lässt sich hineinsehen, was
+die Tests tatsächlich angelegt haben, ohne den Ordner in `%TEMP%` zu suchen, während
+der nächste Lauf schon einen neuen anlegt. `_sandbox/` steht in `.gitignore`.
+
+Weil hier rekursiv gelöscht wird, prüft das Skript vorher, dass der Pfad wirklich der
+Ordner `_sandbox` neben dem Skript ist, und bricht sonst ab, ohne etwas anzufassen.
+
+Der echte Spielstand-Ordner wird nicht angefasst. Auch die D2R-Erkennung ist
+abgekoppelt: `Test-D2RRunning` wird im Testlauf durch eine umschaltbare Fassung
+ersetzt. Vorher brach der Lauf ab, sobald jemand gerade spielte — und der Fall
+„D2R läuft" ließ sich überhaupt nicht prüfen, weil er sich nicht auf Kommando
+herstellen lässt. Jetzt ist er geprüft: Parken und Zurückholen werden abgelehnt,
+Sichern bleibt erlaubt. Im Programm selbst bleibt der Schutz unverändert; dort führt
+der einzige `Get-Process`-Aufruf durch genau diese eine Funktion.
 
 ### Oberfläche prüfen, ohne sie zu starten
 
@@ -213,7 +237,8 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 97 Prüfungen gegen eine Wegwerf-Sandbox |
+| `Test-Sandbox.ps1` | 139 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
 | `Demo-Umgebung.ps1` | startbare Demo mit erfundenen Daten, zum Screenshots machen |

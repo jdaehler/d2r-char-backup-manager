@@ -223,10 +223,14 @@ path.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-97 checks covering header parsing, backing up, restoring, renaming, the folder
-layout, stash behaviour, safety copies, deleting, parking and bringing back. They
-run against a throwaway sandbox under `%TEMP%` and never touch a real save folder.
-Green under Windows PowerShell 5.1 **and** PowerShell 7.4.
+139 checks covering header parsing, backing up, restoring, renaming, the folder
+layout, stash behaviour, safety copies, deleting, parking and bringing back, plus
+the live name check in the dialog and the locks that apply while D2R is running.
+They run against a sandbox in `_sandbox\` next to the script — rebuilt from scratch
+at the start of every run, left in place afterwards so you can look inside — and
+never touch a real save folder. Green under Windows PowerShell 5.1 **and**
+PowerShell 7.4. The tests build real WPF windows, so they need STA — both shells
+default to it on Windows, and the script says so plainly if it ever runs under MTA.
 
 `Build-Deploy.ps1` produces the distributable ZIP.
 

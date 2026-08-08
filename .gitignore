@@ -11,6 +11,10 @@ _deploy/
 Backups/
 D2R-Backups/
 
+# Spielwiese von Test-Sandbox.ps1. Wird bei jedem Testlauf neu aufgebaut und
+# bleibt danach zum Nachsehen stehen - reine Wegwerfdaten, nichts fürs Repo.
+_sandbox/
+
 # Von Render-Ansicht.ps1 erzeugte Bilder, falls sie hier landen.
 ansicht*.png
 hinweis*.png
