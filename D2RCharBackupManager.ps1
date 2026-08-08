@@ -1555,7 +1555,13 @@ $MainXaml = @'
         <ColumnDefinition Width="*" MinWidth="420"/>
       </Grid.ColumnDefinitions>
 
-      <Grid Grid.Column="0">
+      <!-- Rahmen um jede Hälfte: links geht es um Charaktere im Spielstand-Ordner,
+           rechts um das, was im Backup-Ordner liegt. Ohne die Umrandung standen
+           sechs Knopfgruppen nebeneinander, und man musste raten, welche Liste
+           eine Aktion meint - "Löschen" gibt es auf beiden Seiten. -->
+      <Border Grid.Column="0" BorderBrush="#DCDCDC" BorderThickness="1" CornerRadius="4"
+              Background="#FAFAFA" Padding="8,6,8,8">
+      <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/>
           <RowDefinition Height="*"/>
@@ -1641,10 +1647,13 @@ $MainXaml = @'
         </DataGrid>
       </GroupBox>
       </Grid>
+      </Border>
 
       <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
 
-      <Grid Grid.Column="2">
+      <Border Grid.Column="2" BorderBrush="#DCDCDC" BorderThickness="1" CornerRadius="4"
+              Background="#FAFAFA" Padding="8,6,8,8">
+      <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/>
           <RowDefinition Height="Auto"/>
@@ -1696,7 +1705,10 @@ $MainXaml = @'
           </WrapPanel>
         </Border>
 
-        <GroupBox Grid.Row="2" Header="Snapshots">
+        <!-- Nicht mehr nur "Snapshots": seit 1.3 stehen hier auch die
+             Papierkorb-Einträge. Der Kopf sagt das, damit die Aktionsgruppe
+             darüber schlicht "Markierte Einträge" heißen kann. -->
+        <GroupBox Grid.Row="2" Header="Sicherungen und Papierkorb">
           <DataGrid x:Name="GridSnaps" AutoGenerateColumns="False" IsReadOnly="True"
                     RowStyle="{StaticResource AuswahlZeile}" CellStyle="{StaticResource AuswahlZelle}"
                     SelectionMode="Extended" HeadersVisibility="Column"
@@ -1752,6 +1764,7 @@ $MainXaml = @'
           </Grid>
         </GroupBox>
       </Grid>
+      </Border>
     </Grid>
   </DockPanel>
 </Window>
@@ -2257,6 +2270,7 @@ $script:TextsEn = @{
     'Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Removes everything in the recycle bin - no matter what is selected in the list. The backups made before each deletion remain.'
     'Leeren' = 'Empty'
     'Markierte Einträge' = 'Selected entries'
+    'Sicherungen und Papierkorb' = 'Backups and recycle bin'
     'Endgültig löschen' = 'Delete for good'
     'nur dieser Charakter' = 'this character only'
     'ohne Auto-Sicherungen' = 'without automatic backups'
