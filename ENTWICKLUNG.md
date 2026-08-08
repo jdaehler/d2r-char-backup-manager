@@ -427,9 +427,32 @@ in `_Projekte\` mit einschließen, sonst kollidiert ein neuer Name unbemerkt mit
 geparkten Dateisatz. Reihenfolge: Umbenennen zuerst (validiert die Basis), dann
 Duplizieren (fast geschenkt), dann Löschen.
 
-**Vor dem Bau zu klären:** die echten Namensregeln von D2R (Länge, erlaubte Zeichen,
-Bindestrich/Unterstrich) — nachschlagen, nicht raten. Ein Name, den das Tool zulässt und
-das Spiel nicht, erzeugt einen Charakter, der in der Auswahl fehlt.
+### Namensregeln — nachgeschlagen am 08.08.2026, nicht geraten
+
+Quelle: Arreat Summit, die offizielle Blizzard-Spielhilfe
+(`classic.battle.net/diablo2exp/basics/characters.shtml`). Gilt unverändert für D2R,
+mehrfach in den Blizzard-D2R-Foren bestätigt.
+
+- **Länge 2 bis 15 Zeichen.**
+- **Nur Buchstaben A–Z**, groß und klein. **Keine Ziffern, keine Leerzeichen.**
+- Dazu **entweder ein Bindestrich oder ein Unterstrich** — genau einer, und **nicht als
+  erstes oder letztes Zeichen**.
+
+Als Regex: `^(?=.{2,15}$)[A-Za-z]+([-_][A-Za-z]+)?$`
+
+**Gegen den echten Bestand geprüft:** alle 33 Charaktere des Captains (14 im
+Wurzelverzeichnis, der Rest geparkt in `_Projekte\`) erfüllen diese Regel — auch die
+Grenzfälle `Amazone_Poison`, `HM-ONE` und `jdASSA-One`. Deshalb darf die Prüfung im
+Programm **hart sperren** statt nur zu warnen: es gibt keinen vorhandenen Namen, den sie
+verbieten würde.
+
+Nicht verwechseln: die verwaisten `.ctlo`/`.keyo` mit Ziffern im Namen
+(`Abracadabra213848843`) gehören **Online**-Charakteren. Für die gelten die
+Battle.net-Regeln, und angefasst werden sie ohnehin nicht (siehe *Online-Charaktere
+bleiben draußen*).
+
+Grund für die Sorgfalt: Ein Name, den das Tool zulässt und das Spiel nicht, erzeugt einen
+Charakter, der in der Auswahl fehlt.
 
 **Bewusst abgewogen:** Mit diesen drei Aktionen wird der Backup-Manager wieder ein Stück
 Char-Manager — wovon der Programmname am 03.08.2026 gerade weg wollte. Vertretbar, solange
