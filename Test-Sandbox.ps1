@@ -4,7 +4,10 @@ Add-Type -AssemblyName PresentationFramework, System.IO.Compression, System.IO.C
 $src = Join-Path $PSScriptRoot 'D2RCharBackupManager.ps1'
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($src, [ref]$null, [ref]$null)
 foreach ($a in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.AssignmentStatementAst]}, $false)) {
-  if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName|AppVersion|TextsEn)$') { Invoke-Expression $a.Extent.Text }
+  # $RestoreXaml ohne script:-Praefix, damit der Dialog fuer die Pruefung der
+  # Live-Namenspruefung wirklich gebaut werden kann - ohne ihn anzuzeigen.
+  if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName|AppVersion|TextsEn)$' -or
+      $a.Left.Extent.Text -eq '$RestoreXaml') { Invoke-Expression $a.Extent.Text }
 }
 foreach ($f in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $false)) {
   Invoke-Expression $f.Extent.Text
@@ -144,6 +147,54 @@ Check "'jdBarb-' abgelehnt"       ((Test-D2RName 'jdBarb-') -ne '')
 Check "'-jdBarb' abgelehnt"       ((Test-D2RName '-jdBarb') -ne '')
 Check "'Neuer Barb' abgelehnt"    ((Test-D2RName 'Neuer Barb') -ne '')
 
+"--- Live-Namenspruefung im Dialog ---"
+# Der Wiederherstellen-Dialog wird gebaut, aber nicht angezeigt. Dann wird ins
+# Namensfeld "getippt" und geprueft, ob Feld und Knopf richtig reagieren - das
+# ist der Teil, den man sonst nur von Hand durch Klicken pruefen koennte.
+$dlgT = ConvertFrom-Xaml $RestoreXaml
+$boxT = $dlgT.FindName('TxtName')
+$errT = $dlgT.FindName('TxtNameError')
+$okT  = $dlgT.FindName('BtnOk')
+$normalBrushT = $boxT.BorderBrush
+
+Register-NameCheck -Box $boxT -ErrBox $errT -Ok $okT
+
+$boxT.Text = 'GuterName'
+Check "gueltig: Knopf frei"       ($okT.IsEnabled)
+Check "gueltig: kein Fehlertext"  ($errT.Visibility -eq 'Collapsed')
+
+$boxT.Text = 'jdBarb2'
+Check "Ziffer: Knopf gesperrt"    (-not $okT.IsEnabled)
+Check "Ziffer: Fehler sichtbar"   ($errT.Visibility -eq 'Visible')
+Check "Ziffer: Feld rot"          ($boxT.BorderBrush -eq [System.Windows.Media.Brushes]::Firebrick)
+
+$boxT.Text = 'jdBarb-'
+Check "Trenner am Ende gesperrt"  (-not $okT.IsEnabled)
+
+$boxT.Text = 'WiederGut'
+Check "Erholung: Knopf frei"      ($okT.IsEnabled)
+Check "Erholung: Rahmen zurueck"  ($boxT.BorderBrush -eq $normalBrushT)
+Check "Erholung: Fehler weg"      ($errT.Visibility -eq 'Collapsed')
+
+# Zusatzpruefung des Aufrufers: warnt nur (orange), sperrt aber nicht - so
+# verhaelt sich die Namenskollision im Wiederherstellen-Dialog.
+$dlgW = ConvertFrom-Xaml $RestoreXaml
+$boxW = $dlgW.FindName('TxtName'); $errW = $dlgW.FindName('TxtNameError'); $okW = $dlgW.FindName('BtnOk')
+Register-NameCheck -Box $boxW -ErrBox $errW -Ok $okW -ExtraBlocks $false -Extra { param($n) if ($n -eq 'Belegt') { 'schon da' } else { '' } }
+$boxW.Text = 'Belegt'
+Check "Warnung: Knopf bleibt frei" ($okW.IsEnabled)
+Check "Warnung: Text sichtbar"     ($errW.Text -eq 'schon da')
+Check "Warnung: Feld orange"       ($boxW.BorderBrush -eq [System.Windows.Media.Brushes]::DarkOrange)
+
+# Dieselbe Zusatzpruefung, aber sperrend - so wird sie das Umbenennen nutzen.
+$dlgB = ConvertFrom-Xaml $RestoreXaml
+$boxB = $dlgB.FindName('TxtName'); $errB = $dlgB.FindName('TxtNameError'); $okB = $dlgB.FindName('BtnOk')
+Register-NameCheck -Box $boxB -ErrBox $errB -Ok $okB -ExtraBlocks $true -Extra { param($n) if ($n -eq 'Belegt') { 'schon da' } else { '' } }
+$boxB.Text = 'Belegt'
+Check "sperrende Zusatzpruefung"   (-not $okB.IsEnabled)
+$boxB.Text = 'Anders'
+Check "danach wieder frei"         ($okB.IsEnabled)
+
 "--- Snapshot loeschen ---"
 $zp = Join-Path $backup $full.pfad
 Remove-Snapshot $full
@@ -212,7 +263,20 @@ try { $null = Move-CharacterToProject -CharName 'TestBarb' -Project 'Alte Helden
 Check "zweiter gleicher Name abgelehnt" $kam
 Check "Datei blieb im Spielstand-Ordner" (Test-Path (Join-Path $saves 'TestBarb.d2s'))
 Check "kein Snapshot bei Abbruch"       (@($script:Index.snapshots).Count -eq $snapsVor2) @($script:Index.snapshots).Count
+
+"--- Namenskollision finden ---"
+# Hier liegt 'TestBarb' zweimal: aktiv im Spielstand-Ordner und geparkt in
+# 'Alte Helden'. Der aktive Fund hat Vorrang, er ist der naeherliegende.
+$kolA = Get-NameKollision 'TestBarb'
+Check "aktiver Fund gewinnt"            ($kolA.Kind -eq 'active') $kolA.Kind
 Remove-Item (Join-Path $saves 'TestBarb.d2s') -Force
+# Jetzt nur noch geparkt - genau der Fall, den eine Pruefung ohne Blick in
+# _Projekte uebersehen wuerde.
+$kolP = Get-NameKollision 'TestBarb'
+Check "geparkter Fund erkannt"          ($kolP.Kind -eq 'parked') $kolP.Kind
+Check "Projekt wird mitgeliefert"       ($kolP.Project -eq 'Alte Helden') $kolP.Project
+$kolF = Get-NameKollision 'GibtEsNicht'
+Check "freier Name ist frei"            ($kolF.Kind -eq '') $kolF.Kind
 
 "--- Zurueckholen ---"
 $r = Restore-CharacterFromProject -Project 'Alte Helden' -CharName 'TestBarb'

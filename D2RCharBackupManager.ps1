@@ -943,6 +943,27 @@ function Get-AllCharacters {
     @(@(Get-Characters) + @(Get-ParkedCharacters) | Sort-Object Name)
 }
 
+# Liegt schon ein Charakter dieses Namens irgendwo? Aktiv im Spielstand-Ordner
+# oder geparkt in einem Projekt - beides muss gefunden werden, sonst kollidiert
+# ein neuer Name unbemerkt mit einem weggeräumten Dateisatz, und spätestens beim
+# Zurückholen stehen zwei Charaktere gleichen Namens gegeneinander.
+#
+# Rückgabe: Kind ist 'active', 'parked' oder '' (frei). Bewusst ein Objekt statt
+# eines Textes - ein Projekt darf auch 'aktiv' heißen.
+function Get-NameKollision {
+    param([string]$Name)
+
+    if (@(Get-CharacterFiles $Name).Count -gt 0) {
+        return [pscustomobject]@{ Kind = 'active'; Project = '' }
+    }
+    foreach ($p in (Get-ProjectNames)) {
+        if (@(Get-ParkedCharacterFiles -Project $p -CharName $Name).Count -gt 0) {
+            return [pscustomobject]@{ Kind = 'parked'; Project = $p }
+        }
+    }
+    [pscustomobject]@{ Kind = ''; Project = '' }
+}
+
 function Move-CharacterToProject {
     param([string]$CharName, [string]$Project)
 
@@ -1434,6 +1455,8 @@ $RestoreXaml = @'
 
     <TextBlock Text="Ziel-Charaktername:" Margin="0,0,0,4"/>
     <TextBox x:Name="TxtName" Margin="0,0,0,4"/>
+    <TextBlock x:Name="TxtNameError" TextWrapping="Wrap" FontSize="11" FontWeight="Bold"
+               Visibility="Collapsed" Margin="0,0,0,6"/>
     <TextBlock x:Name="TxtNameHint" TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,10"
                Text="Leer lassen bzw. Originalname stehen lassen, um den Charakter unter seinem alten Namen zurückzuholen. Ein anderer Name legt eine Kopie als neuen Charakter an."/>
 
@@ -1840,6 +1863,7 @@ $script:TextsEn = @{
     'Erlaubt sind nur Buchstaben (A-Z) sowie ein "_" oder "-" - keine Ziffern, keine Leerzeichen.' = 'Only letters (A-Z) are allowed, plus one "_" or "-" - no digits, no spaces.'
     'D2R erlaubt höchstens ein "_" oder "-" im Namen.' = 'D2R allows at most one "_" or "-" in a name.'
     'Das "_" oder "-" darf nicht am Anfang oder Ende des Namens stehen.' = 'The "_" or "-" must not be the first or last character of the name.'
+    'Im Projekt ''{0}'' ist bereits ein Charakter namens ''{1}'' geparkt. Es gäbe den Namen dann zweimal.' = 'Project ''{0}'' already holds a parked character named ''{1}''. The name would exist twice.'
 }
 
 function T {
@@ -2348,6 +2372,71 @@ function Show-SettingsDialog {
 
 # --- Wiederherstellen --------------------------------------------------------
 
+# Live-Prüfung für ein Namensfeld: prüft bei jedem Tastendruck, färbt das Feld
+# und sperrt den OK-Knopf, solange der Name nicht geht. Ein ungültiger Name soll
+# auffallen, während man tippt - nicht erst, wenn man fertig zu sein glaubt und
+# auf den Knopf drückt.
+#
+# $Extra ist eine zusätzliche Prüfung des Aufrufers, typischerweise auf
+# Namenskollision. Sie bekommt den Namen und liefert '' für "in Ordnung" oder
+# einen Text. Ob dieser Text nur warnt oder auch sperrt, entscheidet
+# $ExtraBlocks: beim Umbenennen ist eine Kollision ein Abbruchgrund, beim
+# Wiederherstellen dagegen eine erlaubte Entscheidung - dort wird überschrieben,
+# wenn der Benutzer die Rückfrage bejaht.
+#
+# Farben: rot sperrt, orange warnt. Zwei Farben statt einer, weil "geht nicht"
+# und "geht, aber überlege kurz" sonst gleich aussähen.
+function Register-NameCheck {
+    param(
+        [object]$Box,
+        [object]$ErrBox,
+        [object]$Ok,
+        [scriptblock]$Extra = $null,
+        [bool]$ExtraBlocks = $true
+    )
+
+    # Ausgangszustand merken, damit der Rahmen bei gültigem Namen wieder genau so
+    # aussieht wie vorher - Farbe und Dicke kommen aus dem Windows-Design.
+    $normalBrush = $Box.BorderBrush
+    $normalThick = $Box.BorderThickness
+    $rot    = [System.Windows.Media.Brushes]::Firebrick
+    $orange = [System.Windows.Media.Brushes]::DarkOrange
+
+    $pruefen = {
+        $name    = $Box.Text.Trim()
+        $fehler  = Test-D2RName $name
+        $hinweis = ''
+        if (-not $fehler -and $Extra) { $hinweis = & $Extra $name }
+
+        if ($fehler) {
+            $ErrBox.Text        = $fehler
+            $ErrBox.Foreground  = $rot
+            $ErrBox.Visibility  = 'Visible'
+            $Box.BorderBrush    = $rot
+            $Box.BorderThickness = [System.Windows.Thickness]::new(2)
+            $Ok.IsEnabled       = $false
+        } elseif ($hinweis) {
+            $ErrBox.Text        = $hinweis
+            $ErrBox.Foreground  = $orange
+            $ErrBox.Visibility  = 'Visible'
+            $Box.BorderBrush    = $orange
+            $Box.BorderThickness = [System.Windows.Thickness]::new(2)
+            $Ok.IsEnabled       = -not $ExtraBlocks
+        } else {
+            $ErrBox.Text        = ''
+            $ErrBox.Visibility  = 'Collapsed'
+            $Box.BorderBrush    = $normalBrush
+            $Box.BorderThickness = $normalThick
+            $Ok.IsEnabled       = $true
+        }
+    }.GetNewClosure()
+
+    $Box.Add_TextChanged($pruefen)
+    # Einmal sofort auslösen: der Dialog geht mit einem vorbelegten Namen auf,
+    # und der kann schon beim Öffnen kollidieren.
+    & $pruefen
+}
+
 function Show-RestoreDialog {
     param([object]$Record)
 
@@ -2355,6 +2444,7 @@ function Show-RestoreDialog {
     $dlg.Owner = $win
     $txtInfo  = $dlg.FindName('TxtInfo')
     $txtName  = $dlg.FindName('TxtName')
+    $txtNameE = $dlg.FindName('TxtNameError')
     $chkStash = $dlg.FindName('ChkStash')
     $chkSafe  = $dlg.FindName('ChkSafety')
     $txtWarnB = $dlg.FindName('TxtWarnBox')
@@ -2390,6 +2480,20 @@ function Show-RestoreDialog {
         } else {
             $txtStash.Text = $satz
         }
+
+        # Live-Prüfung ans Namensfeld. Die Kollision warnt hier nur, sie sperrt
+        # nicht: einen vorhandenen Charakter zu überschreiben ist an dieser
+        # Stelle eine zulässige Absicht. Die Rückfrage vor dem Schreiben bleibt.
+        Register-NameCheck -Box $txtName -ErrBox $txtNameE -Ok $btnOk -ExtraBlocks $false -Extra {
+            param($n)
+            if ($n -eq $Record.char) { return '' }
+            $k = Get-NameKollision $n
+            switch ($k.Kind) {
+                'active' { (T 'Es gibt bereits einen Charakter namens ''{0}''. Seine Dateien werden überschrieben.') -f $n }
+                'parked' { (T 'Im Projekt ''{0}'' ist bereits ein Charakter namens ''{1}'' geparkt. Es gäbe den Namen dann zweimal.') -f $k.Project, $n }
+                default  { '' }
+            }
+        }.GetNewClosure()
     }
 
     if (Test-D2RRunning) {
