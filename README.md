@@ -15,7 +15,9 @@ The entire program is **one PowerShell file in plain text**. Nothing is compiled
 nothing is obfuscated, nothing is minified. Before you let it near your save games
 you can read every line it will execute — and you do not need to be a programmer
 for the parts that matter: search the file for `Remove-Item` and you have found all
-five places where anything is ever deleted.
+eight places where anything is ever deleted. That is not a figure of speech: the
+program deliberately uses no other way of deleting, so that the search really does
+find every one of them.
 
 That is not a side effect of how it was built; it is the reason it was built this
 way. The same thinking runs through the whole design: backups are stored as
@@ -53,6 +55,9 @@ checked at all.
   duplicate is a separate character, and the shared stash is not copied along.
 - **Park** characters: move them out of the D2R character selection without
   deleting them. Useful once the list in the game has grown too long to scroll.
+- **Delete** a character into the program's own recycle bin — safer than deleting
+  in D2R, which is final and takes no backup. A backup is made first and survives
+  even emptying the bin.
 - **Label** every backup with a name, tags and a note; search and filter by them.
 - **Safety copy** taken automatically before every restore, so there is always a
   way back.
@@ -90,6 +95,8 @@ On first start a notice about liability appears that has to be accepted once.
       _INFO.txt, the save files, SharedStash\
   Kompletter Ordner\<date_time>\
       _INFO.txt, every file except the online leftovers (*.ctlo, *.keyo)
+  _Papierkorb\<date_time>_<name>\
+      _INFO.txt and the files of a deleted character — the originals
 ```
 
 > **Why are those folder names German?** `Charaktere` ("characters"),
@@ -137,6 +144,11 @@ different place. Delete the project folder and it is gone.
   renaming — no binary editing, no checksum recalculation.
 - The shared stash belongs to all characters together. It is always included in a
   backup, never restored unless you ask, and never moved when parking.
+- Deleting puts two nets under you, on purpose. The mandatory backup is a *copy*
+  and stays even when the recycle bin is emptied; the bin holds the *originals*
+  and is the quick way back. What emptying the bin ends is the quick way back, not
+  the character. Nothing is ever cleaned up on its own — there is no age limit and
+  no automatic purge.
 
 ## Transparency: privacy, antivirus and your account
 

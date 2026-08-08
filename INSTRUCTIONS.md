@@ -185,9 +185,86 @@ cost you real items.
 * **In doubt** → restore without the box first and check in the game. The automatic
   safety backup always lets you go back.
 
-### Deleting
+### Deleting a backup
 
-**Delete** only removes the *backup*, never a save game.
+The **Delete** button above the snapshot list on the right removes only the
+*backup*, never a save game. To delete a character itself, use the left-hand side —
+see the next section.
+
+---
+
+## Renaming, duplicating and deleting characters
+
+The **Character** group at the top left holds three icon buttons. Each works on
+**exactly one** selected character, and **a backup is taken automatically before
+every one of them** — that cannot be switched off.
+
+All three need **D2R to be closed**. While the game is running the buttons are
+there, but the dialog will not let you go through with it.
+
+### Rename
+
+Renames all files of the character together. **Level, gear and progress stay
+untouched** — in D2R the name lives in the file name only, not inside the save
+file. The program writes nothing into the file itself.
+
+The field checks along as you type:
+
+* **Red field, greyed-out button** → that name will not work. The reason is right
+  below it.
+* Allowed are **2 to 15 letters**, plus at most **one** `_` or `-`, and not as the
+  first or last character. **D2R accepts no digits and no spaces** — a name with a
+  digit would produce a character you can no longer find in the game.
+* Changing only the capitalisation (`jdbarb` → `jdBarb`) works.
+
+### Duplicate
+
+Creates a **copy under a new name**. The original stays exactly as it is, so
+afterwards you have two characters. Handy before trying something that might go
+wrong.
+
+The **shared stash is not copied along** — it belongs to all characters at once
+and exists only a single time.
+
+Here a different capitalisation is **not** enough as a new name: to Windows that
+would be the same file, and the copy would overwrite the original. The program
+refuses it.
+
+### Delete
+
+The red button behind the separator. It is for "this really has to go". **To only
+take a character out of the D2R character selection, park it instead** — see the
+next section.
+
+Deleting here is **safer than deleting inside D2R**, which is final and takes no
+backup. There are two nets under you:
+
+1. **The mandatory backup** is a copy and lands among the normal backups. It stays
+   even when you empty the recycle bin.
+2. **The recycle bin** holds the original files and is the quick way back.
+
+This is the **program's own recycle bin**, not the Windows one. It sits next to
+your backups as `_Papierkorb\`, with one subfolder per deletion.
+
+Deleted characters appear in the snapshot list on the right with the type
+**Recycle bin**. From there you bring them back the ordinary way via
+**Restore…**, under a different name if you like. If they get in the way, the
+**Hide recycle bin** checkbox takes them out of the list.
+
+### Emptying the recycle bin
+
+The red button above the snapshot list. It asks first, stating how many characters
+are in there and how much space they take.
+
+**Nothing is ever cleaned up on its own** — there is no age limit and no automatic
+purge. And even after emptying, the characters are not lost: the backups made
+before each deletion remain. What is gone for good is only the quick way back.
+
+### Parked characters are out of scope here
+
+If a character is parked, all three buttons say: bring it back first. That is down
+to the mandatory backup — it only reaches characters sitting in the save folder.
+Better an honest refusal than working without a backup.
 
 ---
 

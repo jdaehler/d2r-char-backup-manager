@@ -187,9 +187,87 @@ geändert hat, lies den Satz — dann kostet das Häkchen dich echte Gegenständ
 * **Im Zweifel** → erst ohne Häkchen wiederherstellen, im Spiel nachsehen. Die
   automatische Sicherheitskopie erlaubt dir jederzeit den Rückweg.
 
+### Eine Sicherung löschen
+
+Der Knopf **Löschen** rechts über der Snapshot-Liste entfernt nur die
+*Sicherung*, niemals einen Spielstand. Einen Charakter selbst löschst du links —
+siehe den nächsten Abschnitt.
+
+---
+
+## Charaktere umbenennen, duplizieren und löschen
+
+Rechts oben in der Gruppe **Charakter** stehen drei Symbolknöpfe. Sie wirken
+immer auf **genau einen** markierten Charakter, und **vor jedem von ihnen wird
+automatisch gesichert** — das lässt sich nicht abschalten.
+
+Für alle drei gilt: **D2R muss geschlossen sein.** Solange das Spiel läuft, sind
+die Knöpfe zwar da, aber der Dialog lässt dich nicht weiter.
+
+### Umbenennen
+
+Benennt alle Dateien des Charakters gemeinsam um. **Level, Ausrüstung und
+Fortschritt bleiben unberührt** — in D2R steckt der Name nur im Dateinamen, nicht
+in der Spielstanddatei. Das Programm schreibt also nichts in die Datei hinein.
+
+Beim Tippen prüft das Feld sofort mit:
+
+* **Rotes Feld, Knopf grau** → der Name geht nicht. Darunter steht, warum.
+* Erlaubt sind **2 bis 15 Buchstaben**, dazu höchstens **ein** `_` oder `-`, und
+  das nicht am Anfang oder Ende. **Ziffern und Leerzeichen lässt D2R nicht zu** —
+  ein Name mit Ziffer würde einen Charakter erzeugen, den du im Spiel nicht mehr
+  findest.
+* Nur die Groß-/Kleinschreibung zu ändern (`jdbarb` → `jdBarb`) geht.
+
+### Duplizieren
+
+Legt eine **Kopie unter neuem Namen** an. Das Original bleibt unverändert stehen,
+und du hast danach zwei Charaktere. Praktisch, bevor du etwas ausprobierst, das
+schiefgehen kann.
+
+Der **Shared Stash wird nicht mitkopiert** — er gehört allen Charakteren
+gemeinsam und gibt es nur einmal.
+
+Hier reicht eine andere Schreibweise **nicht** als neuer Name: für Windows wäre
+das dieselbe Datei, die Kopie würde das Original überschreiben. Das Programm
+lehnt es deshalb ab.
+
 ### Löschen
 
-**Löschen** entfernt nur die *Sicherung*, niemals einen Spielstand.
+Der rote Knopf hinter dem Trennstrich. Er ist für „soll wirklich weg". **Wer
+einen Charakter nur aus der Charakterauswahl von D2R haben will, parkt ihn** —
+siehe den nächsten Abschnitt.
+
+Das Löschen hier ist **sicherer als das Löschen in D2R selbst**, das endgültig
+ist und keine Sicherung anlegt. Es liegen zwei Netze unter dir:
+
+1. **Die Pflicht-Sicherung** ist eine Kopie und landet bei den normalen
+   Sicherungen. Sie bleibt auch dann liegen, wenn du den Papierkorb leerst.
+2. **Der Papierkorb** enthält die Originaldateien und ist der schnelle Rückweg.
+
+Das ist ein **eigener Papierkorb des Programms**, nicht der von Windows. Er liegt
+als `_Papierkorb\` bei deinen Sicherungen, mit einem Unterordner je Löschung.
+
+Gelöschte Charaktere erscheinen in der Snapshot-Liste rechts mit dem Typ
+**Papierkorb**. Von dort holst du sie ganz normal über **Wiederherstellen…**
+zurück, auf Wunsch unter anderem Namen. Wenn sie dich stören, blendet das Häkchen
+**Papierkorb ausblenden** sie aus der Liste aus.
+
+### Papierkorb leeren
+
+Der rote Knopf über der Snapshot-Liste. Er fragt vorher, wie viele Charaktere
+darin liegen und wie viel Platz sie belegen.
+
+**Es wird nie von selbst aufgeräumt** — es gibt keine Altersgrenze und kein
+automatisches Leeren. Und auch nach dem Leeren sind die Charaktere nicht
+verloren: die Sicherungen von vor dem Löschen bleiben bestehen. Endgültig weg ist
+nur der schnelle Rückweg.
+
+### Geparkte Charaktere gehen hier nicht
+
+Ist ein Charakter geparkt, sagen alle drei Knöpfe: erst zurückholen. Das liegt an
+der Pflicht-Sicherung — sie erfasst nur Charaktere, die im Spielstand-Ordner
+liegen. Lieber ehrlich ablehnen als ohne Sicherung arbeiten.
 
 ---
 

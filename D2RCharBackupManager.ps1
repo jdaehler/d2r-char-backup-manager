@@ -29,7 +29,7 @@ foreach ($asm in 'PresentationFramework','PresentationCore','WindowsBase','Syste
 $script:AppName    = 'D2R Char Backup Manager'
 # Versionsnummer: steht im Fenstertitel und in der Statuszeile beim Start.
 # Bei Änderungen mitpflegen, die Liste dazu steht im README unter "Versionen".
-$script:AppVersion = '1.21'
+$script:AppVersion = '1.3'
 
 # Fassung des Haftungshinweises. Wird die Nummer erhöht, muss jeder Nutzer den
 # Hinweis erneut bestätigen - dafür ist sie da. Nur erhöhen, wenn sich der Text
@@ -1236,8 +1236,12 @@ function Clear-Trash {
     $geleert = 0
     foreach ($e in $eintraege) {
         $ordner = Get-SnapshotOrdner $e
+        # Bewusst Remove-Item und nicht [IO.Directory]::Delete: das README
+        # verspricht, dass eine Suche nach "Remove-Item" jede Stelle findet, an
+        # der dieses Programm etwas löscht. Eine Löschung, die dabei durchs
+        # Raster fiele, wäre genau die eine, die niemand prüfen kann.
         if ($ordner -and (Test-Path -LiteralPath $ordner)) {
-            [System.IO.Directory]::Delete($ordner, $true)
+            Remove-Item -LiteralPath $ordner -Recurse -Force
         }
         $geleert++
     }

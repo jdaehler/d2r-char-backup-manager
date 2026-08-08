@@ -418,11 +418,10 @@ Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünsch
    Beiwerk, sondern der Mechanismus selbst, und es gibt keinen zweiten Kopierpfad neben
    dem längst erprobten. Der Shared Stash wird **nicht** mitkopiert — er gehört allen
    Charakteren gemeinsam.
-3. **Löschen.** Nur für „soll wirklich weg" — wer den Charakter bloß aus der
-   Charakterauswahl haben will, parkt ihn. Zwingender Snapshot davor (wie beim Parken,
-   nicht abschaltbar) und Verschieben in einen **eigenen Papierkorb-Ordner** statt hartem
-   Löschen. Damit ist es sicherer als das Löschen in D2R selbst, das endgültig und ohne
-   Sicherung ist. Einzelheiten unten.
+3. **Löschen — erledigt am 08.08.2026.** Nur für „soll wirklich weg" — wer den
+   Charakter bloß aus der Charakterauswahl haben will, parkt ihn. Zwingender Snapshot
+   davor und Verschieben in einen **eigenen Papierkorb-Ordner** statt hartem Löschen.
+   `Remove-CharacterToTrash`, `Get-TrashStats`, `Clear-Trash`. Einzelheiten unten.
 
 ### Papierkorb als eigener Ordner
 
@@ -447,6 +446,29 @@ im Explorer sichtbar, auch ohne das Programm zurückzukopieren.
 - Liegt der Backup-Ordner auf einem anderen Laufwerk als die Spielstände, ist das
   Verschieben ein Kopieren mit anschließendem Löschen. Erst nach erfolgreichem Kopieren
   löschen, und bei nicht erreichbarem Backup-Ziel das Löschen gar nicht erst anbieten.
+
+**So gebaut, plus was beim Bauen dazukam:**
+
+- **Kopiert wird immer, auch auf demselben Laufwerk.** Erst kopieren, Dateigröße
+  vergleichen, dann löschen — nie umgekehrt. Damit ist die Reihenfolge in beiden Fällen
+  dieselbe, und ein Abbruch mittendrin kostet keine Datei, sondern hinterlässt
+  schlimmstenfalls eine Kopie zu viel.
+- **Zwei Netze übereinander, mit Absicht.** Der Pflicht-Snapshot ist eine *Kopie* und
+  bleibt liegen, auch wenn der Papierkorb geleert wird; der Papierkorb-Eintrag enthält
+  die *Originale* und ist der schnelle Rückweg. Endgültig ist damit nur der Rückweg,
+  nie der Charakter. Der Trash-Eintrag merkt sich in `snapshotId`, zu welcher Sicherung
+  er gehört.
+- **`Restore-Snapshot` brauchte genau eine Änderung:** `$istChar = ($Snapshot.kind -ne
+  'full')` statt `-eq 'char'`. Danach holt der gewöhnliche Rückweg auch Gelöschtes
+  zurück, samt anderem Namen. Dasselbe Muster in `Write-SnapshotInfo`.
+- **`Remove-Item` statt `[IO.Directory]::Delete` beim Leeren.** Das README verspricht,
+  dass eine Suche nach `Remove-Item` *jede* Stelle findet, an der dieses Programm etwas
+  löscht. Eine Löschung, die durchs Raster fiele, wäre genau die eine, die niemand
+  prüfen kann. Beim Ändern dieser Stelle also nicht auf .NET-Methoden ausweichen — und
+  die Zahl im README mitzählen (Stand 1.3: acht Stellen).
+- **Die Filterzeile ist jetzt ein `WrapPanel`.** Mit dem dritten Häkchen passte sie nicht
+  mehr in jede Fensterbreite und wurde rechts abgeschnitten. Im gerenderten Fenster
+  aufgefallen, nicht im Test — Tests prüfen Verhalten, nicht Layout.
 
 **Gemeinsame Basis, einmal bauen:** Dateisatz eines Charakters ermitteln, `Test-D2RRunning`,
 Pflicht-Snapshot, Namensprüfung mit Kollisionstest — und der muss **geparkte** Charaktere

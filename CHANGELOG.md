@@ -3,6 +3,59 @@
 Newest entry first. The version number lives in `$script:AppVersion` and is shown
 in the window title and on the right of the status bar.
 
+## 1.3 — 2026-08-08
+
+Three actions straight on the character list: **rename**, **duplicate** and
+**delete**. Each of them takes a backup first, and that cannot be switched off —
+that mandatory backup is the reason these actions belong in a backup program at
+all. They sit in their own "Character" group as icon buttons; delete is red and
+stands behind a separator, because it is the only one that takes something away.
+
+- **Rename.** All files of the character are renamed together. Nothing inside the
+  save file is touched: in D2R the name lives in the file name alone, so this is
+  pure file renaming — no binary editing, no checksum. Previously this was only
+  possible as a detour through restoring under a different name, which left the
+  old character behind to be cleaned up by hand.
+  - Changing only the capitalisation works as well (`jdbarb` → `jdBarb`). Windows
+    treats those as the same file name, so it is done via an intermediate name.
+- **Duplicate.** Copies the file set under a new name; the original stays exactly
+  as it is. The shared stash is *not* copied along — it belongs to all characters
+  at once. Internally this is a backup that is immediately written back under the
+  new name, so it uses the same well-tested path as restoring.
+  - Here a different capitalisation is **refused**: to Windows the "copy" would be
+    the same file and would overwrite the original.
+- **Delete, with the program's own recycle bin.** Safer than deleting inside D2R,
+  which is final and takes no backup. Two nets, on purpose: the mandatory backup
+  is a copy and remains even when the bin is emptied, while the bin holds the
+  originals and is the quick way back. Emptying ends the quick way back, not the
+  character.
+  - Deliberately **not** the Windows recycle bin: restoring from that one in
+    Explorer would put the files straight back where they came from, so the
+    character would reappear in the D2R selection without this program knowing.
+  - Location `_Papierkorb\` next to the backups, one folder per deletion with a
+    timestamp in its name and an `_INFO.txt`. Entries show up in the snapshot list
+    marked as "Recycle bin", can be filtered away with a new checkbox, and can be
+    brought back the ordinary way — including under a different name.
+  - **No automatic cleanup, no age limit.** Emptying happens only when you ask
+    for it, and the confirmation states how many characters and how much data it
+    concerns.
+  - Files are copied and verified first and only then removed, never the other way
+    round. If the backup folder cannot be reached, deleting does not start at all.
+
+**Name checking is now correct, and it happens while you type.** The rules were
+looked up in Blizzard's official game guide rather than guessed: 2 to 15
+characters, letters A–Z only, plus at most one `_` or `-` that may not be the
+first or last character. The previous check allowed digits and a trailing
+separator — names D2R does not accept, which would have produced a character
+missing from the selection. The field now turns red and the button greys out as
+soon as a name will not work; orange marks the cases that are allowed but worth a
+second thought, such as an existing name that would be overwritten when restoring.
+Collision checking includes parked characters, which used to be a blind spot.
+
+Not covered: parked characters cannot be renamed, duplicated or deleted directly.
+Bring them back first. The mandatory backup does not reach into project folders,
+and rather than weaken that rule the action is refused with a note.
+
 ## 1.21 — 2026-08-06
 
 A note on the numbering: the second digit after the dot is a bug-fix counter on the
