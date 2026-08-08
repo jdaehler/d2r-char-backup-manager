@@ -124,12 +124,25 @@ $vollInfo = Get-Content (Join-Path $vollOrdner '_INFO.txt') -Raw
 Check "_INFO nennt die Online-Ausnahme" ($vollInfo -match 'Online-Charaktere sind nicht dabei')
 
 "--- Namenspruefung ---"
-Check "'Ab' gueltig"           ((Test-D2RName 'Ab') -eq '')
-Check "'Neuer_Barb' gueltig"   ((Test-D2RName 'Neuer_Barb') -eq '')
-Check "'1Barb' abgelehnt"      ((Test-D2RName '1Barb') -ne '')
-Check "'A' abgelehnt"          ((Test-D2RName 'A') -ne '')
-Check "'a_b-c' abgelehnt"      ((Test-D2RName 'a_b-c') -ne '')
-Check "16 Zeichen abgelehnt"   ((Test-D2RName 'Abcdefghijklmnop') -ne '')
+# Regel laut Arreat Summit: 2-15 Zeichen, nur A-Z, hoechstens ein "_" oder "-"
+# und das nicht am Rand. Die Grenzfaelle unten stammen aus dem echten Bestand
+# des Captains - alle 33 Namen muessen die Pruefung passieren.
+Check "'Ab' gueltig"              ((Test-D2RName 'Ab') -eq '')
+Check "'Neuer_Barb' gueltig"      ((Test-D2RName 'Neuer_Barb') -eq '')
+Check "'Amazone_Poison' gueltig"  ((Test-D2RName 'Amazone_Poison') -eq '')
+Check "'HM-ONE' gueltig"          ((Test-D2RName 'HM-ONE') -eq '')
+Check "'jdASSA-One' gueltig"      ((Test-D2RName 'jdASSA-One') -eq '')
+Check "15 Zeichen gueltig"        ((Test-D2RName 'Abcdefghijklmno') -eq '')
+Check "'1Barb' abgelehnt"         ((Test-D2RName '1Barb') -ne '')
+Check "'A' abgelehnt"             ((Test-D2RName 'A') -ne '')
+Check "'a_b-c' abgelehnt"         ((Test-D2RName 'a_b-c') -ne '')
+Check "16 Zeichen abgelehnt"      ((Test-D2RName 'Abcdefghijklmnop') -ne '')
+# Neu ab 08.08.2026: die alte Regel liess diese vier durch, D2R nimmt sie nicht.
+Check "'jdBarb2' abgelehnt"       ((Test-D2RName 'jdBarb2') -ne '')
+Check "'Sorc99' abgelehnt"        ((Test-D2RName 'Sorc99') -ne '')
+Check "'jdBarb-' abgelehnt"       ((Test-D2RName 'jdBarb-') -ne '')
+Check "'-jdBarb' abgelehnt"       ((Test-D2RName '-jdBarb') -ne '')
+Check "'Neuer Barb' abgelehnt"    ((Test-D2RName 'Neuer Barb') -ne '')
 
 "--- Snapshot loeschen ---"
 $zp = Join-Path $backup $full.pfad

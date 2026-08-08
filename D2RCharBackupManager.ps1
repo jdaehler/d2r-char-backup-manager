@@ -690,13 +690,23 @@ function New-Snapshot {
 
 function Test-D2RName {
     param([string]$Name)
-    # D2R: 2-15 Zeichen, Beginn mit Buchstabe, danach Buchstaben/Ziffern sowie
-    # maximal ein "_" oder "-". Wir prüfen bewusst etwas großzügiger und
-    # warnen nur, statt hart zu blockieren.
+    # Belegte Regel, am 08.08.2026 in der offiziellen Blizzard-Spielhilfe
+    # nachgeschlagen (Arreat Summit) und gegen den echten Bestand geprüft:
+    # 2-15 Zeichen, nur Buchstaben A-Z, dazu höchstens ein "_" oder "-", und
+    # das weder als erstes noch als letztes Zeichen. Keine Ziffern, keine
+    # Leerzeichen. Siehe ENTWICKLUNG.md, Abschnitt "Namensregeln".
+    #
+    # Wird hart durchgesetzt, nicht als Warnung: einen Namen, den D2R nicht
+    # annimmt, schriebe das Programm zwar anstandslos auf die Platte, aber der
+    # Charakter fehlte danach in der Charakterauswahl des Spiels.
+    #
+    # Gemeldet wird jeder Verstoß einzeln - eine Sammelmeldung "Name ungültig"
+    # lässt den Benutzer raten, woran es lag.
     if ([string]::IsNullOrWhiteSpace($Name)) { return (T 'Der Name darf nicht leer sein.') }
     if ($Name.Length -lt 2 -or $Name.Length -gt 15) { return (T 'Der Name muss zwischen 2 und 15 Zeichen lang sein.') }
-    if ($Name -notmatch '^[A-Za-z][A-Za-z0-9_-]*$') { return (T 'Erlaubt sind Buchstaben, Ziffern, "_" und "-"; das erste Zeichen muss ein Buchstabe sein.') }
+    if ($Name -notmatch '^[A-Za-z_-]+$') { return (T 'Erlaubt sind nur Buchstaben (A-Z) sowie ein "_" oder "-" - keine Ziffern, keine Leerzeichen.') }
     if (@($Name.ToCharArray() | Where-Object { $_ -eq '_' -or $_ -eq '-' }).Count -gt 1) { return (T 'D2R erlaubt höchstens ein "_" oder "-" im Namen.') }
+    if ($Name -match '^[_-]' -or $Name -match '[_-]$') { return (T 'Das "_" oder "-" darf nicht am Anfang oder Ende des Namens stehen.') }
     ''
 }
 
@@ -1827,8 +1837,9 @@ $script:TextsEn = @{
     'Achtung: D2R läuft gerade. Das Spiel schreibt seinen Stand beim Beenden zurück und würde die Wiederherstellung überschreiben. Bitte zuerst D2R beenden.' = 'Warning: D2R is currently running. The game writes its state back on exit and would overwrite the restore. Please quit D2R first.'
     'Der Name darf nicht leer sein.' = 'The name must not be empty.'
     'Der Name muss zwischen 2 und 15 Zeichen lang sein.' = 'The name must be between 2 and 15 characters long.'
-    'Erlaubt sind Buchstaben, Ziffern, "_" und "-"; das erste Zeichen muss ein Buchstabe sein.' = 'Allowed are letters, digits, "_" and "-"; the first character must be a letter.'
+    'Erlaubt sind nur Buchstaben (A-Z) sowie ein "_" oder "-" - keine Ziffern, keine Leerzeichen.' = 'Only letters (A-Z) are allowed, plus one "_" or "-" - no digits, no spaces.'
     'D2R erlaubt höchstens ein "_" oder "-" im Namen.' = 'D2R allows at most one "_" or "-" in a name.'
+    'Das "_" oder "-" darf nicht am Anfang oder Ende des Namens stehen.' = 'The "_" or "-" must not be the first or last character of the name.'
 }
 
 function T {
