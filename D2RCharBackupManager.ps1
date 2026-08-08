@@ -964,6 +964,83 @@ function Get-NameKollision {
     [pscustomobject]@{ Kind = ''; Project = '' }
 }
 
+# Benennt alle Dateien eines Charakters um. In die Spielstanddatei selbst wird
+# nicht eingegriffen - der Name steht nur im Dateinamen, siehe "Warum Umbenennen
+# gefahrlos ist". Damit ist das hier ein reines Umbenennen von Dateien.
+#
+# Nur für aktive Charaktere. Ein geparkter müsste erst zurückgeholt werden, weil
+# der Pflicht-Snapshot ihn sonst nicht erfasst - New-Snapshot sieht nur in den
+# Spielstand-Ordner, nicht in die Projektordner (siehe "Offene Punkte").
+function Rename-Character {
+    param([string]$CharName, [string]$NewName)
+
+    if (-not $CharName) { throw (T 'Kein Charakter angegeben.') }
+    $NewName = "$NewName".Trim()
+
+    $fehler = Test-D2RName $NewName
+    if ($fehler) { throw $fehler }
+
+    # -ceq beachtet Groß-/Kleinschreibung: wirklich derselbe Name ist ein
+    # Denkfehler des Benutzers, eine andere Schreibweise dagegen eine legitime
+    # Absicht ("jdbarb" soll "jdBarb" heißen).
+    if ($NewName -ceq $CharName) { throw (T 'Der neue Name ist derselbe wie der alte.') }
+
+    # Windows unterscheidet in Dateinamen keine Groß-/Kleinschreibung. Wer nur
+    # die Schreibweise ändert, kollidiert deshalb mit sich selbst - dieser Fall
+    # wird von der Kollisionsprüfung ausgenommen und weiter unten über einen
+    # Zwischennamen umbenannt.
+    $nurSchreibweise = ($NewName -eq $CharName)
+
+    if (Test-D2RRunning) { throw (T 'D2R läuft. Zum Umbenennen muss das Spiel beendet sein.') }
+
+    if (-not $nurSchreibweise) {
+        $kol = Get-NameKollision $NewName
+        switch ($kol.Kind) {
+            'active' { throw ((T 'Es gibt bereits einen Charakter namens {0}.') -f $NewName) }
+            'parked' { throw ((T 'Im Projekt {0} ist bereits ein Charakter namens {1} geparkt.') -f $kol.Project, $NewName) }
+        }
+    }
+
+    $dateien = @(Get-CharacterFiles $CharName | Where-Object { $_.Extension.ToLowerInvariant() -ne '.d2i' })
+    if ($dateien.Count -eq 0) { throw ((T 'Zu diesem Charakter wurden keine Dateien gefunden:') + " $CharName") }
+
+    # Pflicht-Snapshot, bevor die erste Datei angefasst wird. Nicht abschaltbar -
+    # das ist die Begründung dafür, dass diese Aktion überhaupt in einem
+    # Sicherungsprogramm sitzt.
+    $snap = New-Snapshot -Kind char -CharName $CharName `
+                         -Label (T 'Automatisch vor dem Umbenennen') -Tags @('auto','umbenannt') -Automatic
+    if (-not $snap) { throw (T 'Die Sicherung vor dem Umbenennen ist fehlgeschlagen - es wurde nichts umbenannt.') }
+
+    $ordner   = $script:Config.SavePath
+    $umbenannt = @()
+
+    # Bei reiner Schreibweisenänderung führt der Weg über einen Zwischennamen,
+    # sonst lehnt Windows das Umbenennen als "Ziel existiert bereits" ab. Der
+    # Zwischenname ist ein reiner Dateiname und muss keine D2R-Regel erfüllen -
+    # er existiert nur für den Bruchteil einer Sekunde.
+    $zwischen = if ($nurSchreibweise) { "$NewName~tmp$([guid]::NewGuid().ToString('N').Substring(0,6))" } else { '' }
+
+    foreach ($f in $dateien) {
+        $ziel = $NewName + $f.Extension
+        if ($nurSchreibweise) {
+            $tmp = $zwischen + $f.Extension
+            Move-Item -LiteralPath $f.FullName -Destination (Join-Path $ordner $tmp) -Force
+            Move-Item -LiteralPath (Join-Path $ordner $tmp) -Destination (Join-Path $ordner $ziel) -Force
+        } else {
+            Move-Item -LiteralPath $f.FullName -Destination (Join-Path $ordner $ziel) -Force
+        }
+        $umbenannt += $ziel
+    }
+
+    [pscustomobject]@{
+        OldName          = $CharName
+        NewName          = $NewName
+        Files            = @($umbenannt)
+        Snapshot         = $snap
+        D2RStartedDuring = (Test-D2RRunning)
+    }
+}
+
 function Move-CharacterToProject {
     param([string]$CharName, [string]$Project)
 
@@ -1328,6 +1405,16 @@ $MainXaml = @'
                         ToolTip="Blendet geparkte Charaktere aus der Liste aus. Am Parken selbst ändert das nichts - nur an der Anzeige."/>
             </WrapPanel>
           </GroupBox>
+
+          <!-- Aktionen am Charakter selbst. Symbolknopf mit Tooltip, kein
+               zweiter Textknopf - links löst weiterhin nur "Markierte sichern"
+               mit Text aus. Vor jeder dieser Aktionen wird gesichert. -->
+          <GroupBox Header="Charakter" Padding="8,4,8,6" Margin="10,0,0,4">
+            <WrapPanel Orientation="Horizontal">
+              <Button x:Name="BtnRename" Style="{StaticResource IconButton}" Content="&#xE8AC;" Margin="0,0,6,4"
+                      ToolTip="Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen."/>
+            </WrapPanel>
+          </GroupBox>
         </WrapPanel>
 
       <GroupBox Grid.Row="1" Header="Charaktere">
@@ -1469,6 +1556,32 @@ $RestoreXaml = @'
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
       <Button x:Name="BtnOk"     Width="120" Height="30" Margin="0,0,8,0" IsDefault="True">Wiederherstellen</Button>
+      <Button x:Name="BtnCancel" Width="90"  Height="30" IsCancel="True">Abbrechen</Button>
+    </StackPanel>
+  </StackPanel>
+</Window>
+'@
+
+$RenameXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Charakter umbenennen" Height="330" Width="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+  <StackPanel Margin="14">
+    <TextBlock x:Name="TxtInfo" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+    <TextBlock Text="Neuer Name:" Margin="0,0,0,4"/>
+    <TextBox x:Name="TxtName" Margin="0,0,0,4"/>
+    <TextBlock x:Name="TxtNameError" TextWrapping="Wrap" FontSize="11" FontWeight="Bold"
+               Visibility="Collapsed" Margin="0,0,0,6"/>
+    <TextBlock x:Name="TxtNameHint" TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,12"
+               Text="Erlaubt sind 2 bis 15 Buchstaben, dazu höchstens ein Unterstrich oder Bindestrich in der Mitte. Ziffern und Leerzeichen lässt D2R nicht zu."/>
+
+    <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,12"
+               Text="Vorher wird automatisch gesichert. Der Name steht nur im Dateinamen - in die Spielstanddatei selbst wird nicht eingegriffen, Level, Ausrüstung und Fortschritt bleiben unberührt."/>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+      <Button x:Name="BtnOk"     Width="120" Height="30" Margin="0,0,8,0" IsDefault="True">Umbenennen</Button>
       <Button x:Name="BtnCancel" Width="90"  Height="30" IsCancel="True">Abbrechen</Button>
     </StackPanel>
   </StackPanel>
@@ -1864,6 +1977,29 @@ $script:TextsEn = @{
     'D2R erlaubt höchstens ein "_" oder "-" im Namen.' = 'D2R allows at most one "_" or "-" in a name.'
     'Das "_" oder "-" darf nicht am Anfang oder Ende des Namens stehen.' = 'The "_" or "-" must not be the first or last character of the name.'
     'Im Projekt ''{0}'' ist bereits ein Charakter namens ''{1}'' geparkt. Es gäbe den Namen dann zweimal.' = 'Project ''{0}'' already holds a parked character named ''{1}''. The name would exist twice.'
+
+    # Umbenennen
+    'Charakter umbenennen' = 'Rename character'
+    'Neuer Name:' = 'New name:'
+    'Erlaubt sind 2 bis 15 Buchstaben, dazu höchstens ein Unterstrich oder Bindestrich in der Mitte. Ziffern und Leerzeichen lässt D2R nicht zu.' = 'Allowed are 2 to 15 letters, plus at most one underscore or hyphen in the middle. D2R does not accept digits or spaces.'
+    'Vorher wird automatisch gesichert. Der Name steht nur im Dateinamen - in die Spielstanddatei selbst wird nicht eingegriffen, Level, Ausrüstung und Fortschritt bleiben unberührt.' = 'A backup is made first. The name only lives in the file name - the save file itself is not touched, so level, gear and progress stay as they are.'
+    'Umbenennen' = 'Rename'
+    # 'Charakter' steht schon weiter oben - der Gruppenkopf nutzt denselben Eintrag.
+    'Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen.' = 'Renames the selected character. All of its files are renamed with it, and a backup is made first. Level and gear stay untouched - the name only lives in the file name.'
+    "Charakter '{0}' umbenennen ({1}, Level {2})." = "Rename character '{0}' ({1}, level {2})."
+    'Der neue Name ist derselbe wie der alte.' = 'The new name is the same as the old one.'
+    'Das ist der bisherige Name.' = 'That is the current name.'
+    'D2R läuft. Zum Umbenennen muss das Spiel beendet sein.' = 'D2R is running. The game must be closed before renaming.'
+    'D2R läuft gerade. Zum Umbenennen muss das Spiel beendet sein.' = 'D2R is currently running. The game must be closed before renaming.'
+    'Es gibt bereits einen Charakter namens {0}.' = 'There is already a character named {0}.'
+    'Im Projekt {0} ist bereits ein Charakter namens {1} geparkt.' = 'Project {0} already holds a parked character named {1}.'
+    'Automatisch vor dem Umbenennen' = 'Automatic, before rename'
+    'Die Sicherung vor dem Umbenennen ist fehlgeschlagen - es wurde nichts umbenannt.' = 'The backup before renaming failed - nothing was renamed.'
+    'Bitte links genau einen Charakter auswählen. Umbenannt wird immer einer nach dem anderen.' = 'Please select exactly one character on the left. Renaming is done one at a time.'
+    'Dieser Charakter ist geparkt. Zum Umbenennen muss er erst zurückgeholt werden - nur dann greift die Sicherung, die vorher angelegt wird.' = 'This character is parked. Bring it back before renaming - only then does the backup made beforehand cover it.'
+    'Umbenennen abgebrochen.' = 'Rename cancelled.'
+    "'{0}' heißt jetzt '{1}' - {2} Datei(en) umbenannt, vorher gesichert." = "'{0}' is now called '{1}' - {2} file(s) renamed, backed up beforehand."
+    'D2R wurde während des Umbenennens gestartet. Die Dateien sind vollständig umbenannt, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while renaming. The files are fully renamed, but please check in the game that everything is right.'
 }
 
 function T {
@@ -2385,7 +2521,9 @@ function Show-SettingsDialog {
 # wenn der Benutzer die Rückfrage bejaht.
 #
 # Farben: rot sperrt, orange warnt. Zwei Farben statt einer, weil "geht nicht"
-# und "geht, aber überlege kurz" sonst gleich aussähen.
+# und "geht, aber überlege kurz" sonst gleich aussähen. Die Farbe der
+# Zusatzprüfung richtet sich deshalb nach $ExtraBlocks - eine orange Meldung an
+# einem gesperrten Knopf wäre ein Widerspruch.
 function Register-NameCheck {
     param(
         [object]$Box,
@@ -2416,10 +2554,11 @@ function Register-NameCheck {
             $Box.BorderThickness = [System.Windows.Thickness]::new(2)
             $Ok.IsEnabled       = $false
         } elseif ($hinweis) {
+            $farbe = if ($ExtraBlocks) { $rot } else { $orange }
             $ErrBox.Text        = $hinweis
-            $ErrBox.Foreground  = $orange
+            $ErrBox.Foreground  = $farbe
             $ErrBox.Visibility  = 'Visible'
-            $Box.BorderBrush    = $orange
+            $Box.BorderBrush    = $farbe
             $Box.BorderThickness = [System.Windows.Thickness]::new(2)
             $Ok.IsEnabled       = -not $ExtraBlocks
         } else {
@@ -2530,6 +2669,55 @@ function Show-RestoreDialog {
             RestoreStash = [bool]$chkStash.IsChecked
             Safety       = [bool]$chkSafe.IsChecked
         }
+        $dlg.DialogResult = $true
+    }.GetNewClosure())
+
+    if ($dlg.ShowDialog()) { return $dlg.Tag }
+    $null
+}
+
+function Show-RenameDialog {
+    param([object]$Row)
+
+    $dlg = ConvertFrom-Xaml $RenameXaml
+    $dlg.Owner = $win
+    $txtInfo  = $dlg.FindName('TxtInfo')
+    $txtName  = $dlg.FindName('TxtName')
+    $txtNameE = $dlg.FindName('TxtNameError')
+    $btnOk    = $dlg.FindName('BtnOk')
+
+    $alt = $Row.Name
+    $txtInfo.Text = ((T "Charakter '{0}' umbenennen ({1}, Level {2}).") -f $alt, $Row.ClassName, $Row.Level)
+    $txtName.Text = $alt
+    $txtName.SelectAll()
+    $txtName.Focus() | Out-Null
+
+    # Alles, was den Knopf sperrt, läuft durch diese eine Prüfung - auch das
+    # laufende Spiel. Stünde die D2R-Sperre daneben, hübe der nächste Tastendruck
+    # sie wieder auf. So gewinnt sie immer, und wer D2R bei offenem Dialog
+    # beendet, bekommt den Knopf beim nächsten Tastendruck von selbst zurück.
+    #
+    # Die Kollision sperrt hier hart: einen vorhandenen Charakter beim Umbenennen
+    # zu überschreiben ergibt keinen Sinn, das wäre nur ein Weg, ihn zu verlieren.
+    Register-NameCheck -Box $txtName -ErrBox $txtNameE -Ok $btnOk -ExtraBlocks $true -Extra {
+        param($n)
+        if (Test-D2RRunning) { return (T 'D2R läuft gerade. Zum Umbenennen muss das Spiel beendet sein.') }
+        # Gleicher Name in anderer Schreibweise ist erlaubt - das ist keine
+        # Kollision mit einem fremden Charakter, sondern mit sich selbst.
+        if ($n -eq $alt) {
+            if ($n -ceq $alt) { return (T 'Das ist der bisherige Name.') }
+            return ''
+        }
+        $k = Get-NameKollision $n
+        switch ($k.Kind) {
+            'active' { (T 'Es gibt bereits einen Charakter namens {0}.') -f $n }
+            'parked' { (T 'Im Projekt {0} ist bereits ein Charakter namens {1} geparkt.') -f $k.Project, $n }
+            default  { '' }
+        }
+    }.GetNewClosure()
+
+    $btnOk.Add_Click({
+        $dlg.Tag = $txtName.Text.Trim()
         $dlg.DialogResult = $true
     }.GetNewClosure())
 
@@ -2747,6 +2935,50 @@ $win.FindName('BtnPark').Add_Click({
     if ($fehler.Count -gt 0) {
         [void][System.Windows.MessageBox]::Show(
             ((T 'Bei {0} Charakter(en) hat es nicht geklappt:') -f $fehler.Count) + "`n`n" + [string]::Join([Environment]::NewLine, $fehler),
+            $script:AppName, 'OK', 'Warning')
+    }
+})
+
+$win.FindName('BtnRename').Add_Click({
+    # Bewusst nur ein Charakter auf einmal: jeder braucht einen eigenen neuen
+    # Namen, eine Sammelaktion gäbe es dafür nicht.
+    $rows = @(Get-SelectedCharRows)
+    if ($rows.Count -ne 1) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Bitte links genau einen Charakter auswählen. Umbenannt wird immer einer nach dem anderen.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $row = $rows[0]
+    if ($row.Parked) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Dieser Charakter ist geparkt. Zum Umbenennen muss er erst zurückgeholt werden - nur dann greift die Sicherung, die vorher angelegt wird.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $neu = Show-RenameDialog -Row $row
+    if (-not $neu) { Set-Status (T 'Umbenennen abgebrochen.'); return }
+
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $erg = Rename-Character -CharName $row.Name -NewName $neu
+    } catch {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+        [void][System.Windows.MessageBox]::Show($_.Exception.Message, $script:AppName, 'OK', 'Warning')
+        Update-All
+        return
+    } finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+
+    Update-All
+    Set-Status ((T "'{0}' heißt jetzt '{1}' - {2} Datei(en) umbenannt, vorher gesichert.") -f $erg.OldName, $erg.NewName, $erg.Files.Count)
+
+    if ($erg.D2RStartedDuring) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'D2R wurde während des Umbenennens gestartet. Die Dateien sind vollständig umbenannt, aber prüfe im Spiel, ob alles stimmt.'),
             $script:AppName, 'OK', 'Warning')
     }
 })

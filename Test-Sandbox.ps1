@@ -371,6 +371,66 @@ $fullOrdner = Join-Path $backup $full2.pfad
 Check "Projektordner nicht im Vollbackup" (-not (Test-Path (Join-Path $fullOrdner '_Projekte')))
 Check "geparkte Datei nicht im Vollbackup" (@(Get-ChildItem $fullOrdner -Recurse -File | Where-Object { $_.Name -eq 'TestBarb.map' }).Count -eq 0)
 
+"--- Umbenennen ---"
+# Eigener Ausgangszustand, damit dieser Block nicht davon abhaengt, was die
+# Abschnitte davor hinterlassen haben.
+New-FakeD2S (Join-Path $saves 'RenameMe.d2s') 105 4 30 0x20
+foreach ($e in '.ctl','.key','.ma0') { [System.IO.File]::WriteAllText((Join-Path $saves "RenameMe$e"), 'x') }
+# Gleichnamiger Online-Rest: darf beim Umbenennen liegen bleiben.
+[System.IO.File]::WriteAllText((Join-Path $saves 'RenameMe.ctlo'), 'online')
+$snapsVorU = @($script:Index.snapshots).Count
+
+$u = Rename-Character -CharName 'RenameMe' -NewName 'NeuerHeld'
+Check "4 Dateien umbenannt"             ($u.Files.Count -eq 4) $u.Files.Count
+Check "neuer Name da"                   (Test-Path (Join-Path $saves 'NeuerHeld.d2s'))
+Check "alter Name weg"                  (-not (Test-Path (Join-Path $saves 'RenameMe.d2s')))
+Check "Begleitdatei mit umbenannt"      (Test-Path (Join-Path $saves 'NeuerHeld.ma0'))
+Check "Online-Rest blieb liegen"        (Test-Path (Join-Path $saves 'RenameMe.ctlo'))
+Check "Online-Rest nicht umbenannt"     (-not (Test-Path (Join-Path $saves 'NeuerHeld.ctlo')))
+$ui2 = Get-D2SInfo (Join-Path $saves 'NeuerHeld.d2s')
+Check "Datei intakt (Barbar Lvl 30)"    ($ui2.Valid -and $ui2.ClassName -eq 'Barbar' -and $ui2.Level -eq 30)
+Check "Pflicht-Snapshot angelegt"       (@($script:Index.snapshots).Count -eq ($snapsVorU + 1))
+Check "Snapshot traegt den alten Namen" (@($script:Index.snapshots | Where-Object { $_.char -eq 'RenameMe' }).Count -ge 1)
+Check "Snapshot ist als auto markiert"  ($u.Snapshot.automatic -eq $true)
+Check "Ergebnis nennt beide Namen"      ($u.OldName -eq 'RenameMe' -and $u.NewName -eq 'NeuerHeld')
+
+"--- Umbenennen: nur die Schreibweise ---"
+# Der Windows-Fall: fuer das Dateisystem ist "neuerheld" derselbe Name. Ohne
+# Zwischenschritt lehnte Windows das Umbenennen als "Ziel existiert" ab.
+$u2 = Rename-Character -CharName 'NeuerHeld' -NewName 'neuerHeld'
+Check "Schreibweise geaendert"          ($u2.NewName -eq 'neuerHeld')
+$echt = @(Get-ChildItem $saves -File -Filter '*.d2s' | Where-Object { $_.BaseName -ceq 'neuerHeld' })
+Check "Dateiname wirklich klein"        ($echt.Count -eq 1) (@(Get-ChildItem $saves -File -Filter 'neuerHeld.d2s')[0].BaseName)
+Check "keine Datei verloren"            (@(Get-ChildItem $saves -File | Where-Object { $_.BaseName -eq 'neuerHeld' }).Count -eq 4)
+Check "kein Zwischenname liegen geblieben" (@(Get-ChildItem $saves -File | Where-Object { $_.Name -like '*~tmp*' }).Count -eq 0)
+$ui3 = Get-D2SInfo (Join-Path $saves 'neuerHeld.d2s')
+Check "Datei weiterhin intakt"          ($ui3.Valid -and $ui3.Level -eq 30)
+
+"--- Umbenennen: was abgelehnt wird ---"
+$snapsVorA = @($script:Index.snapshots).Count
+function Umbenennen-Scheitert($alt, $neu) {
+  try { $null = Rename-Character -CharName $alt -NewName $neu; return $false } catch { return $true }
+}
+New-FakeD2S (Join-Path $saves 'Zweiter.d2s') 105 1 5 0x20
+
+Check "ungueltiger Name abgelehnt"      (Umbenennen-Scheitert 'neuerHeld' 'Held2')
+Check "identischer Name abgelehnt"      (Umbenennen-Scheitert 'neuerHeld' 'neuerHeld')
+Check "belegter Name abgelehnt"         (Umbenennen-Scheitert 'neuerHeld' 'Zweiter')
+Check "unbekannter Charakter abgelehnt" (Umbenennen-Scheitert 'GibtEsNicht' 'Egal')
+Check "kein Snapshot bei Ablehnung"     (@($script:Index.snapshots).Count -eq $snapsVorA) @($script:Index.snapshots).Count
+Check "Dateien unveraendert"            (Test-Path (Join-Path $saves 'neuerHeld.d2s'))
+
+# Ein geparkter Name muss ebenfalls blockieren, sonst gaebe es ihn zweimal,
+# sobald der geparkte Charakter zurueckgeholt wird.
+$null = Move-CharacterToProject -CharName 'Zweiter' -Project 'Weggeraeumt'
+Check "geparkter Name blockiert"        (Umbenennen-Scheitert 'neuerHeld' 'Zweiter')
+
+$script:FakeD2RRunning = $true
+$snapsVorD = @($script:Index.snapshots).Count
+Check "bei laufendem D2R abgelehnt"     (Umbenennen-Scheitert 'neuerHeld' 'AndersHerum')
+Check "dabei kein Snapshot"             (@($script:Index.snapshots).Count -eq $snapsVorD)
+$script:FakeD2RRunning = $false
+
 "--- Einzelinstanz ---"
 # Der Mutex verhindert, dass zwei Fenster dieselbe index.json beschreiben.
 Check "erste Instanz bekommt die Sperre" (Enter-EinzelInstanz)

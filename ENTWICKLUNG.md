@@ -142,7 +142,7 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 139 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 164 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
 Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
@@ -237,7 +237,7 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 139 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `Test-Sandbox.ps1` | 164 Prüfungen gegen die Sandbox in `_sandbox\` |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
@@ -408,10 +408,10 @@ Erledigt: der Wiederherstellen-Pfad ist am 04.08.2026 echt gelaufen und im Spiel
 
 Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünscht:
 
-1. **Umbenennen.** Alle Dateien des Charakters gleich umbenennen. Kein Eingriff in die
-   Datei, siehe *Warum Umbenennen gefahrlos ist*. Heute nur als Umweg möglich: sichern,
-   dann im Wiederherstellen-Dialog das Namensfeld ändern — dabei bleibt der alte
-   Charakter stehen und muss von Hand weg.
+1. **Umbenennen — erledigt am 08.08.2026.** Alle Dateien des Charakters gleich
+   umbenennen. Kein Eingriff in die Datei, siehe *Warum Umbenennen gefahrlos ist*.
+   `Rename-Character` plus `Show-RenameDialog`, Symbolknopf in der neuen Gruppe
+   „Charakter". Einzelheiten unter *Umbenennen: was dabei zu beachten war*.
 2. **Duplizieren / Klonen mit Namensangabe.** Dateisatz unter neuem Namen kopieren.
    Der Pfad existiert im Grunde schon (`Restore-Snapshot` mit abweichendem Namen), der
    Knopf wäre die Abkürzung: Snapshot anlegen, sofort unter neuem Namen zurückschreiben.
@@ -478,6 +478,34 @@ bleiben draußen*).
 
 Grund für die Sorgfalt: Ein Name, den das Tool zulässt und das Spiel nicht, erzeugt einen
 Charakter, der in der Auswahl fehlt.
+
+### Umbenennen: was dabei zu beachten war
+
+- **Nur die Schreibweise ändern ist der Sonderfall.** Windows unterscheidet in
+  Dateinamen keine Groß-/Kleinschreibung, `jdbarb` → `jdBarb` ist für das Dateisystem
+  also dieselbe Datei und wird als „Ziel existiert bereits" abgelehnt. `Rename-Character`
+  erkennt das (`-eq` gleich, `-ceq` verschieden), nimmt diesen Fall von der
+  Kollisionsprüfung aus und benennt über einen Zwischennamen um. Getestet wird, dass
+  hinterher kein `~tmp`-Rest liegen bleibt.
+- **Alles, was den Knopf sperrt, läuft durch die Live-Prüfung** — auch das laufende
+  Spiel. Stünde die D2R-Sperre als eigene Zeile daneben, hübe der nächste Tastendruck
+  sie wieder auf, weil `Register-NameCheck` den Knopf bei gültigem Namen freigibt. Als
+  Nebeneffekt bekommt man den Knopf von selbst zurück, wenn man D2R bei offenem Dialog
+  beendet und weitertippt.
+- **Farbe folgt der Wirkung:** Die Zusatzprüfung färbt rot, wenn sie sperrt
+  (`ExtraBlocks`), sonst orange. Eine orange Meldung an einem gesperrten Knopf wäre ein
+  Widerspruch.
+- **Immer nur ein Charakter.** Jeder braucht einen eigenen neuen Namen, eine
+  Sammelaktion gäbe es dafür nicht.
+- **Geparkte Charaktere sind ausgenommen** und werden mit Hinweis abgelehnt. Grund ist
+  der Pflicht-Snapshot: `New-Snapshot` sieht nur in den Spielstand-Ordner, nicht in die
+  Projektordner (*Offene Punkte*, Nr. 2). Ohne Sicherung wird nicht umbenannt, also muss
+  ein geparkter Charakter erst zurückgeholt werden. Wenn das stören sollte, ist der
+  richtige Weg, `New-Snapshot` um Projektordner zu erweitern — nicht, die Pflicht
+  aufzuweichen.
+- **Online-Reste bleiben liegen.** `.ctlo`/`.keyo` gehören Battle.net-Charakteren, auch
+  wenn sie zufällig denselben Basisnamen tragen. Sie werden nicht mit umbenannt, und ein
+  Test hält das fest.
 
 **Bewusst abgewogen:** Mit diesen drei Aktionen wird der Backup-Manager wieder ein Stück
 Char-Manager — wovon der Programmname am 03.08.2026 gerade weg wollte. Vertretbar, solange

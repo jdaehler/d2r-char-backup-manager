@@ -223,7 +223,7 @@ path.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-139 checks covering header parsing, backing up, restoring, renaming, the folder
+164 checks covering header parsing, backing up, restoring, renaming, the folder
 layout, stash behaviour, safety copies, deleting, parking and bringing back, plus
 the live name check in the dialog and the locks that apply while D2R is running.
 They run against a sandbox in `_sandbox\` next to the script — rebuilt from scratch
