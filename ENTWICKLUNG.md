@@ -114,9 +114,24 @@ blieb nichts liegen, und der Pflicht-Snapshot steht als *Automatisch vor dem
 Umbenennen* im Index. Damit ist auch der Grenzfall belegt, der zur Umstellung der
 Namensprüfung geführt hat: der alte Name enthielt einen Unterstrich, der neue keinen.
 
-**Noch nicht echt gelaufen:** Duplizieren und Löschen. Beide bisher nur gegen die
-Sandbox geprüft. Beim Löschen wäre der echte Durchlauf am wichtigsten — dort wandern
-Originaldateien.
+**Duplizieren und Löschen samt Zurückholen** sind am 08.08.2026 ebenfalls echt gelaufen,
+vom Captain ausgeführt und für gut befunden:
+
+- 16:08 **dupliziert**: `HM-TWO` (Level 13) → `TESTONE`, das Original blieb stehen.
+- 16:10 **gelöscht**: `HM-TWO` wanderte nach
+  `_Papierkorb\2026-08-08_161016_HM-TWO\` — fünf Dateien plus `_INFO.txt`, dazu der
+  Pflicht-Snapshot *Automatisch vor dem Löschen* im Index.
+- Danach **zurückgeholt**: `HM-TWO` steht wieder im Spielstand-Ordner, mit
+  unverändertem Zeitstempel der Datei.
+
+Damit sind alle drei Aktionen von 1.3 gegen echte Spielstände belegt, nicht nur gegen
+die Sandbox.
+
+**Dabei aufgefallen:** Nach dem Zurückholen bleibt der Papierkorb-Eintrag stehen, der
+Charakter liegt also aktiv *und* im Papierkorb. Das folgt daraus, dass `Restore-Snapshot`
+kopiert statt verschiebt, und ist für Snapshots richtig — beim Windows-Papierkorb
+verschwindet der Eintrag beim Wiederherstellen dagegen. Offen, ob das hier auch so sein
+soll; siehe *Offene Punkte*.
 
 ### Online-Charaktere bleiben draußen
 
@@ -412,6 +427,15 @@ sie als „Klasse *n* (?)" und lassen sich in `config.json` unter `ClassNames` n
    und `SortKey`.
 4. **Kosmetik.** Die Griffpunkte und der Überlaufpfeil der Werkzeugleiste sind
    WPF-Standardbeiwerk und ließen sich ausblenden.
+5. **Papierkorb-Eintrag bleibt nach dem Zurückholen stehen** (aufgefallen beim echten
+   Test am 08.08.2026). Der Charakter liegt danach aktiv im Spielstand-Ordner *und*
+   weiterhin im Papierkorb, weil `Restore-Snapshot` kopiert statt verschiebt. Beim
+   Windows-Papierkorb verschwindet der Eintrag beim Wiederherstellen — hier bleibt er,
+   wie jeder andere Sicherungseintrag auch. Beides vertretbar: Bleiben heißt, man kann
+   mehrfach und unter verschiedenen Namen zurückholen; Verschwinden wäre aufgeräumter
+   und näher an der Erwartung, die das Wort „Papierkorb" weckt. **Nicht ohne Ansage des
+   Captains ändern** — automatisches Wegräumen ist genau das, was dieses Programm sonst
+   überall vermeidet.
 
 Erledigt: der Wiederherstellen-Pfad ist am 04.08.2026 echt gelaufen und im Spiel bestätigt
 (siehe *Stand*) — bis dahin der größte blinde Fleck des Programms.
