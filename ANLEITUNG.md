@@ -250,8 +250,15 @@ als `_Papierkorb\` bei deinen Sicherungen, mit einem Unterordner je Löschung.
 
 Gelöschte Charaktere erscheinen in der Snapshot-Liste rechts mit dem Typ
 **Papierkorb**. Von dort holst du sie ganz normal über **Wiederherstellen…**
-zurück, auf Wunsch unter anderem Namen. Wenn sie dich stören, blendet das Häkchen
-**Papierkorb ausblenden** sie aus der Liste aus.
+zurück, auf Wunsch unter anderem Namen.
+
+Über der Liste steuerst du mit dem Feld **Papierkorb:**, was du siehst:
+
+* **mit anzeigen** — alles zusammen (Standard)
+* **ausblenden** — nur die normalen Sicherungen
+* **nur Papierkorb** — nur die gelöschten Charaktere, praktisch zum Aufräumen
+
+Das betrifft ausschließlich die Anzeige; am Papierkorb selbst ändert es nichts.
 
 ### Papierkorb leeren
 

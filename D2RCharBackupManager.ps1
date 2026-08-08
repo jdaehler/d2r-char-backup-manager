@@ -165,7 +165,7 @@ function New-DefaultView {
         ColsSnaps    = $null   # Spaltenbreiten der Snapshot-Liste
         HideAuto     = $false
         HidePark     = $false
-        HideTrash    = $false
+        TrashFilter  = 0
         OnlySelected = $false
     }
 }
@@ -1727,8 +1727,17 @@ $MainXaml = @'
             <ComboBox x:Name="CmbTag" Width="150" VerticalAlignment="Center" Margin="0,2,0,2"/>
             <CheckBox x:Name="ChkOnlySelected" Content="nur gewählter Charakter" VerticalAlignment="Center" Margin="14,2,0,2"/>
             <CheckBox x:Name="ChkHideAuto" Content="Auto-Sicherungen ausblenden" VerticalAlignment="Center" Margin="14,2,0,2"/>
-            <CheckBox x:Name="ChkHideTrash" Content="Papierkorb ausblenden" VerticalAlignment="Center" Margin="14,2,0,2"
-                      ToolTip="Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts."/>
+            <!-- Dreiwertig, deshalb Auswahlfeld statt Häkchen: "ausblenden"
+                 allein liess sich nicht umkehren, man kam also nie dahin, nur
+                 die geloeschten zu sehen. Die Auswertung geht ueber den Index,
+                 nicht ueber den Text - sonst braeche sie auf Englisch. -->
+            <TextBlock Text="Papierkorb:" VerticalAlignment="Center" Margin="14,2,6,2"/>
+            <ComboBox x:Name="CmbTrash" Width="140" VerticalAlignment="Center" Margin="0,2,0,2" SelectedIndex="0"
+                      ToolTip="Steuert nur die Anzeige der gelöschten Charaktere in dieser Liste. Am Papierkorb selbst ändert das nichts.">
+              <ComboBoxItem Content="mit anzeigen"/>
+              <ComboBoxItem Content="ausblenden"/>
+              <ComboBoxItem Content="nur Papierkorb"/>
+            </ComboBox>
           </WrapPanel>
         </Border>
 
@@ -2285,8 +2294,11 @@ $script:TextsEn = @{
     'Papierkorb' = 'Recycle bin'
     'Charakter löschen' = 'Delete character'
     'Papierkorb leeren' = 'Empty the recycle bin'
-    'Papierkorb ausblenden' = 'Hide recycle bin'
-    'Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts.' = 'Hides deleted characters from the list. It changes nothing about the recycle bin itself.'
+    'Papierkorb:' = 'Recycle bin:'
+    'mit anzeigen' = 'show as well'
+    'ausblenden' = 'hide'
+    'nur Papierkorb' = 'only recycle bin'
+    'Steuert nur die Anzeige der gelöschten Charaktere in dieser Liste. Am Papierkorb selbst ändert das nichts.' = 'Controls only how deleted characters appear in this list. It changes nothing about the recycle bin itself.'
     'Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken.' = 'Delete - into the program''s own recycle bin, not gone right away. A backup is made first. Only taking it out of the game''s list? Park it instead.'
     'Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Removes everything in the recycle bin - no matter what is selected in the list. The backups made before each deletion remain.'
     'Leeren' = 'Empty'
@@ -2472,7 +2484,7 @@ $TxtSearch       = $win.FindName('TxtSearch')
 $CmbTag          = $win.FindName('CmbTag')
 $ChkOnlySelected = $win.FindName('ChkOnlySelected')
 $ChkHideAuto     = $win.FindName('ChkHideAuto')
-$ChkHideTrash    = $win.FindName('ChkHideTrash')
+$CmbTrash        = $win.FindName('CmbTrash')
 $TxtTrashInfo    = $win.FindName('TxtTrashInfo')
 $BtnEmptyTrash   = $win.FindName('BtnEmptyTrash')
 $BtnDelete       = $win.FindName('BtnDelete')
@@ -2559,7 +2571,7 @@ function Save-View {
     $v.ColsChars = Get-ColWidths $GridChars
     $v.ColsSnaps = Get-ColWidths $GridSnaps
     $v.HideAuto     = [bool]$ChkHideAuto.IsChecked
-    $v.HideTrash    = [bool]$ChkHideTrash.IsChecked
+    $v.TrashFilter  = [int]$CmbTrash.SelectedIndex
     $v.HidePark     = [bool]$ChkHidePark.IsChecked
     $v.OnlySelected = [bool]$ChkOnlySelected.IsChecked
     try { Export-Config } catch { }
@@ -2588,7 +2600,15 @@ function Restore-View {
     Set-ColWidths $GridSnaps $v.ColsSnaps
 
     if ($ChkHideAuto)     { $ChkHideAuto.IsChecked     = [bool]$v.HideAuto }
-    if ($ChkHideTrash)    { $ChkHideTrash.IsChecked    = [bool]$v.HideTrash }
+    # Aus 1.3.0 stammt noch das Haekchen HideTrash. Wer damit ausgeblendet
+    # hatte, soll nach dem Update nicht ploetzlich alles sehen.
+    if ($CmbTrash) {
+        $idx = if ($v.PSObject.Properties['TrashFilter']) { [int]$v.TrashFilter }
+               elseif ($v.PSObject.Properties['HideTrash'] -and $v.HideTrash) { 1 }
+               else { 0 }
+        if ($idx -lt 0 -or $idx -gt 2) { $idx = 0 }
+        $CmbTrash.SelectedIndex = $idx
+    }
     if ($ChkHidePark)     { $ChkHidePark.IsChecked     = [bool]$v.HidePark }
     if ($ChkOnlySelected) { $ChkOnlySelected.IsChecked = [bool]$v.OnlySelected }
 }
@@ -2740,8 +2760,9 @@ function Update-SnapshotGrid {
         $rows = @($rows | Where-Object { -not $_.automatic })
     }
 
-    if ($ChkHideTrash.IsChecked) {
-        $rows = @($rows | Where-Object { $_.kind -ne 'trash' })
+    switch ($CmbTrash.SelectedIndex) {
+        1 { $rows = @($rows | Where-Object { $_.kind -ne 'trash' }) }
+        2 { $rows = @($rows | Where-Object { $_.kind -eq 'trash' }) }
     }
 
     Update-TrashInfo
@@ -3192,7 +3213,7 @@ $TxtSearch.Add_TextChanged({ Update-SnapshotGrid })
 $CmbTag.Add_SelectionChanged({ Update-SnapshotGrid })
 $ChkOnlySelected.Add_Click({ Update-SnapshotGrid; Save-View })
 $ChkHideAuto.Add_Click({ Update-SnapshotGrid; Save-View })
-$ChkHideTrash.Add_Click({ Update-SnapshotGrid; Save-View })
+$CmbTrash.Add_SelectionChanged({ Update-SnapshotGrid; Save-View })
 
 # Update-All statt nur die Liste neu zu setzen: die Auswahl und die Zahl im
 # Sichern-Knopf müssen mitziehen, wenn Zeilen verschwinden.

@@ -63,6 +63,25 @@ if ($trash.Count -gt 0) {
   "  (kein Papierkorb-Eintrag herstellbar - Teil uebersprungen)"
 }
 
+"--- Papierkorb-Filter ---"
+# Der Filter ist dreiwertig und wird ueber den Index ausgewertet, nicht ueber den
+# angezeigten Text - sonst braeche er in der englischen Oberflaeche.
+$CmbTrash.SelectedIndex = 0; Update-SnapshotGrid
+$alle = @($GridSnaps.Items).Count
+$mitTrash = @($GridSnaps.Items | Where-Object { $_.kind -eq 'trash' }).Count
+Pruef "mit anzeigen: Papierkorb dabei" ($mitTrash -gt 0) $mitTrash
+
+$CmbTrash.SelectedIndex = 1; Update-SnapshotGrid
+Pruef "ausblenden: kein Papierkorb"  (@($GridSnaps.Items | Where-Object { $_.kind -eq 'trash' }).Count -eq 0)
+Pruef "ausblenden: Rest bleibt"      (@($GridSnaps.Items).Count -eq ($alle - $mitTrash)) @($GridSnaps.Items).Count
+
+$CmbTrash.SelectedIndex = 2; Update-SnapshotGrid
+Pruef "nur Papierkorb: nichts sonst" (@($GridSnaps.Items | Where-Object { $_.kind -ne 'trash' }).Count -eq 0)
+Pruef "nur Papierkorb: alle dabei"   (@($GridSnaps.Items).Count -eq $mitTrash) @($GridSnaps.Items).Count
+
+$CmbTrash.SelectedIndex = 0; Update-SnapshotGrid
+Pruef "zurueck auf alles"            (@($GridSnaps.Items).Count -eq $alle)
+
 "--- Papierkorb-Anzeige ---"
 Pruef "Anzeige gefuellt"            (-not [string]::IsNullOrWhiteSpace($TxtTrashInfo.Text)) $TxtTrashInfo.Text
 Pruef "Knopf frei wenn etwas drin"  ($BtnEmptyTrash.IsEnabled -eq ($trash.Count -gt 0))

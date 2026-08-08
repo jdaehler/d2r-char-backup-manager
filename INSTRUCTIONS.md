@@ -248,8 +248,15 @@ your backups as `_Papierkorb\`, with one subfolder per deletion.
 
 Deleted characters appear in the snapshot list on the right with the type
 **Recycle bin**. From there you bring them back the ordinary way via
-**Restore…**, under a different name if you like. If they get in the way, the
-**Hide recycle bin** checkbox takes them out of the list.
+**Restore…**, under a different name if you like.
+
+Above the list, the **Recycle bin:** box controls what you see:
+
+* **show as well** — everything together (default)
+* **hide** — only the ordinary backups
+* **only recycle bin** — just the deleted characters, handy for tidying up
+
+This affects the display only; it changes nothing about the recycle bin itself.
 
 ### Emptying the recycle bin
 

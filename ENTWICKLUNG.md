@@ -210,8 +210,9 @@ der einzige `Get-Process`-Aufruf durch genau diese eine Funktion.
 `Pruefe-Oberflaeche.ps1` baut das Fenster auf, zeigt es aber nie, und prüft, was
 `Test-Sandbox.ps1` nicht erreicht, weil es das ganze Fenster braucht: hängt das
 Kontextmenü am Gitter, sind seine Einträge ohne Markierung gesperrt, heißt „Löschen"
-bei einem Papierkorb-Eintrag „Endgültig löschen", zieht der Knopf mit, stimmt die
-Mengenangabe neben *Leeren*. Läuft gegen `_sandbox\` und legt sich dort bei Bedarf
+bei einem Papierkorb-Eintrag „Endgültig löschen", zieht der Knopf mit, filtert die
+Papierkorb-Auswahl in allen drei Stellungen richtig, stimmt die Mengenangabe neben
+*Leeren*. Läuft gegen `_sandbox\` und legt sich dort bei Bedarf
 selbst einen Papierkorb-Eintrag an — **nie gegen echte Spielstände**, denn dieser Lauf
 löscht Dateien. Setzt voraus, dass `Test-Sandbox.ps1` vorher lief.
 
@@ -284,7 +285,7 @@ offen ist. Genau dann will man aber oft rendern.
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
 | `Test-Sandbox.ps1` | 230 Prüfungen gegen die Sandbox in `_sandbox\` |
-| `Pruefe-Oberflaeche.ps1` | 11 Prüfungen der Fenster-Verdrahtung (Kontextmenü, Knopfbeschriftungen) |
+| `Pruefe-Oberflaeche.ps1` | 17 Prüfungen der Fenster-Verdrahtung (Kontextmenü, Knopfbeschriftungen, Filter) |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
