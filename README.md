@@ -38,7 +38,7 @@ that you can check it yourself.
 
 What that does and does not mean: the design decisions — folders instead of
 archives, a mandatory backup before parking, no automatic cleanup — were made by a
-human who uses the tool on his own characters. The 230 automated checks exist
+human who uses the tool on his own characters. The 227 automated checks exist
 precisely because generated code needs evidence rather than trust, and the risky
 paths were additionally run against a real save folder and confirmed inside the
 game. None of that makes the code correct by decree; it is the reason it can be
@@ -238,7 +238,7 @@ path.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-230 checks covering header parsing, backing up, restoring, renaming, the folder
+227 checks covering header parsing, backing up, restoring, renaming, the folder
 layout, stash behaviour, safety copies, deleting, parking and bringing back, plus
 the live name check in the dialog and the locks that apply while D2R is running.
 They run against a sandbox in `_sandbox\` next to the script — rebuilt from scratch

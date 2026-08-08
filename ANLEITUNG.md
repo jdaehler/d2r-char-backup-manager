@@ -252,25 +252,34 @@ Gelöschte Charaktere erscheinen in der Snapshot-Liste rechts mit dem Typ
 **Papierkorb**. Von dort holst du sie ganz normal über **Wiederherstellen…**
 zurück, auf Wunsch unter anderem Namen.
 
-Über der Liste steuerst du mit dem Feld **Papierkorb:**, was du siehst:
+Über der Liste steht ganz rechts ein Filter dafür:
 
-* **mit anzeigen** — alles zusammen (Standard)
-* **ausblenden** — nur die normalen Sicherungen
+* **alle Einträge** — Sicherungen und Papierkorb zusammen (Standard)
+* **ohne Papierkorb** — nur die normalen Sicherungen
 * **nur Papierkorb** — nur die gelöschten Charaktere, praktisch zum Aufräumen
 
 Das betrifft ausschließlich die Anzeige; am Papierkorb selbst ändert es nichts.
 
 ### Papierkorb leeren
 
-Rechts oben gibt es dafür eine **eigene Gruppe „Papierkorb"** mit dem Knopf
-**Leeren**. Daneben steht, wie viel drin liegt — ist er leer, ist der Knopf grau.
+Dafür gibt es **keinen eigenen Knopf** — es ist derselbe Weg wie bei jedem
+anderen Eintrag:
 
-Wichtig: **Leeren betrifft immer den ganzen Papierkorb**, nicht das, was du in
-der Liste markiert hast. Willst du nur einen einzelnen Eintrag endgültig
-loswerden, markierst du ihn in der Liste und nimmst **Löschen** in der Gruppe
-**Markierter Eintrag** — oder, schneller, **Rechtsklick auf die Zeile**. Bei
-einem Papierkorb-Eintrag heißt der Befehl dort *Endgültig löschen*, damit klar
-ist, dass diesmal die Originaldateien gemeint sind.
+1. Filter oben rechts auf **nur Papierkorb** stellen.
+2. In der Liste alles markieren (**Strg+A**, oder erste Zeile anklicken und mit
+   Umschalt die letzte).
+3. **Löschen** drücken.
+
+Der Knopf heißt dann *Endgültig löschen* und nennt die Anzahl in Klammern. Die
+Rückfrage sagt, wie viele Einträge und wie viel Speicherplatz betroffen sind.
+
+Genauso löschst du einen **einzelnen** Eintrag: markieren, löschen — oder,
+schneller, **Rechtsklick auf die Zeile**.
+
+**Es wird nie von selbst aufgeräumt** — es gibt keine Altersgrenze und kein
+automatisches Leeren. Und auch danach sind die Charaktere nicht verloren: die
+Sicherungen von vor dem Löschen bleiben bestehen. Endgültig weg ist nur der
+schnelle Rückweg.
 
 **Es wird nie von selbst aufgeräumt** — es gibt keine Altersgrenze und kein
 automatisches Leeren. Und auch nach dem Leeren sind die Charaktere nicht

@@ -550,15 +550,16 @@ $script:Config.BackupPath = $backupEcht
 Check "Charakter unversehrt"            (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
 Check "kein Snapshot bei Ablehnung"     (@($script:Index.snapshots).Count -eq $snapsVorLA) @($script:Index.snapshots).Count
 
-"--- Papierkorb leeren ---"
+"--- Papierkorb ueber die Liste leeren ---"
+# Es gibt keinen eigenen "Leeren"-Knopf mehr: man filtert die Liste auf
+# Papierkorb, markiert alles und loescht. Genau dieser Weg wird hier geprueft -
+# also Remove-Snapshot auf jedem trash-Eintrag.
 $null = Remove-CharacterToTrash -CharName 'Wiedergaenger'
-$stat = Get-TrashStats
-Check "Papierkorb zaehlt Eintraege"     ($stat.Count -ge 2) $stat.Count
-Check "Papierkorb kennt seine Groesse"  ($stat.Bytes -gt 0) $stat.Bytes
+$imKorb = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
+Check "zwei Eintraege im Papierkorb"    ($imKorb.Count -ge 2) $imKorb.Count
 
 $sicherungen = @($script:Index.snapshots | Where-Object { $_.kind -eq 'char' }).Count
-$geleert = Clear-Trash
-Check "Leeren meldet die Anzahl"        ($geleert -eq $stat.Count) $geleert
+foreach ($e in $imKorb) { Remove-Snapshot $e }
 Check "Papierkorb-Ordner verschwunden"  (-not (Test-Path $trashOrdner))
 Check "_Papierkorb-Wurzel mit weg"      (-not (Test-Path (Join-Path $backup '_Papierkorb')))
 Check "keine trash-Eintraege mehr"      (@($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' }).Count -eq 0)
@@ -566,7 +567,6 @@ Check "keine trash-Eintraege mehr"      (@($script:Index.snapshots | Where-Objec
 # Charakter. Die Sicherungen von vor dem Loeschen muessen liegen bleiben.
 Check "Sicherungen bleiben bestehen"    (@($script:Index.snapshots | Where-Object { $_.kind -eq 'char' }).Count -eq $sicherungen)
 Check "Sicherung noch auf der Platte"   (Test-Path (Join-Path (Join-Path $backup $l.Snapshot.pfad) 'Opferlamm.d2s'))
-Check "leerer Papierkorb meldet 0"      ((Get-TrashStats).Count -eq 0)
 
 "--- Einzelinstanz ---"
 # Der Mutex verhindert, dass zwei Fenster dieselbe index.json beschreiben.

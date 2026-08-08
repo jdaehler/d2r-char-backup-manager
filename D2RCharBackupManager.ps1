@@ -1216,46 +1216,12 @@ function Remove-CharacterToTrash {
     }
 }
 
-# Wie viel liegt im Papierkorb? Für die Anzeige und die Rückfrage vor dem Leeren.
-function Get-TrashStats {
-    $eintraege = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
-    [pscustomobject]@{
-        Count = $eintraege.Count
-        Bytes = [long](@($eintraege | ForEach-Object { [long]$_.sizeBytes }) | Measure-Object -Sum).Sum
-    }
-}
-
-# Papierkorb leeren. Passiert ausschließlich auf ausdrücklichen Wunsch: kein
-# automatisches Aufräumen, keine Altersgrenze. Etwas, das ungefragt Charaktere
-# endgültig entsorgt, gehört nicht in ein Sicherungsprogramm.
+# Zum Leeren des Papierkorbs gibt es bewusst keine eigene Funktion mehr: man
+# filtert die Liste auf "nur Papierkorb", markiert alles und drückt Löschen.
+# Das ist derselbe Weg wie bei jedem anderen Eintrag, und `Remove-Snapshot`
+# räumt die leere `_Papierkorb`-Wurzel ohnehin mit weg.
 #
-# Die Pflicht-Snapshots von damals bleiben liegen - endgültig ist hier also nur
-# der schnelle Rückweg, nicht der Charakter.
-function Clear-Trash {
-    $eintraege = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
-    $geleert = 0
-    foreach ($e in $eintraege) {
-        $ordner = Get-SnapshotOrdner $e
-        # Bewusst Remove-Item und nicht [IO.Directory]::Delete: das README
-        # verspricht, dass eine Suche nach "Remove-Item" jede Stelle findet, an
-        # der dieses Programm etwas löscht. Eine Löschung, die dabei durchs
-        # Raster fiele, wäre genau die eine, die niemand prüfen kann.
-        if ($ordner -and (Test-Path -LiteralPath $ordner)) {
-            Remove-Item -LiteralPath $ordner -Recurse -Force
-        }
-        $geleert++
-    }
-    $script:Index.snapshots = @($script:Index.snapshots | Where-Object { $_.kind -ne 'trash' })
-    Export-Index
-
-    # Die Wurzel selbst nur entfernen, wenn nichts Fremdes darin liegt.
-    $wurzel = Get-TrashDir
-    if ((Test-Path -LiteralPath $wurzel) -and
-        @(Get-ChildItem -LiteralPath $wurzel -Force).Count -eq 0) {
-        Remove-Item -LiteralPath $wurzel -Force
-    }
-    $geleert
-}
+# Es bleibt dabei: nichts wird von selbst aufgeräumt, es gibt keine Altersgrenze.
 
 function Move-CharacterToProject {
     param([string]$CharName, [string]$Project)
@@ -1686,17 +1652,13 @@ $MainXaml = @'
           <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Der Papierkorb steht in einer eigenen Gruppe, nicht neben "Löschen".
-             Beide Knöpfe waren rot und hießen sinngemäß dasselbe, wirkten aber
-             verschieden weit: "Löschen" auf die markierte Zeile, "Leeren" auf
-             alles. Die Überschrift und die Mengenangabe daneben sagen jetzt
-             ohne Tooltip, worauf sich der Knopf bezieht. -->
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-        <!-- Überschrift nach der Wirkung, nicht nach dem Inhalt: die Liste
-             enthält seit dem Papierkorb nicht mehr nur Snapshots, und wer einen
-             Papierkorb-Eintrag markiert hatte, suchte die Löschung folgerichtig
-             beim Papierkorb-Knopf statt hier. -->
-        <GroupBox Header="Markierter Eintrag" Padding="8,4,8,6" Margin="0,0,10,4">
+        <!-- Eine Gruppe, zwei Aktionen. Was passiert, entscheidet die Markierung
+             in der Liste; die Filter darunter sind das Werkzeug, um die richtige
+             Markierung hinzubekommen. Ein eigener Knopf "Papierkorb leeren"
+             stand hier einmal daneben und war genau die Verdopplung, die man
+             sich damit spart: Filter auf "nur Papierkorb", alles markieren,
+             Löschen. -->
+        <GroupBox Grid.Row="0" Header="Markierte Einträge" Padding="8,4,8,6" Margin="0,0,0,6">
           <WrapPanel Orientation="Horizontal">
             <Button x:Name="BtnRestore" Style="{StaticResource NormalButton}" Margin="0,0,6,4">Wiederherstellen...</Button>
             <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4" MinWidth="150">Löschen</Button>
@@ -1706,36 +1668,29 @@ $MainXaml = @'
           </WrapPanel>
         </GroupBox>
 
-        <GroupBox Header="Papierkorb" Padding="8,4,8,6" Margin="0,0,0,4">
-          <WrapPanel Orientation="Horizontal">
-            <Button x:Name="BtnEmptyTrash" Style="{StaticResource DangerButton}" Margin="0,0,8,4"
-                    ToolTip="Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.">Leeren</Button>
-            <TextBlock x:Name="TxtTrashInfo" VerticalAlignment="Center" Foreground="#666" Margin="0,0,0,4"/>
-          </WrapPanel>
-        </GroupBox>
-        </WrapPanel>
-
         <!-- WrapPanel statt StackPanel: mit dem dritten Häkchen passt die Zeile
              nicht mehr in jede Fensterbreite und wurde am rechten Rand
              abgeschnitten. So bricht sie um, statt etwas zu verstecken. -->
         <Border Grid.Row="1" Padding="4,2,4,6">
           <WrapPanel Orientation="Horizontal">
             <TextBlock Text="Suche:" VerticalAlignment="Center" Margin="0,2,6,2"/>
-            <TextBox x:Name="TxtSearch" Width="180" VerticalAlignment="Center" Margin="0,2,0,2"
+            <TextBox x:Name="TxtSearch" Width="120" VerticalAlignment="Center" Margin="0,2,0,2"
                      ToolTip="Sucht in Charaktername, Label, Tags und Notiz"/>
-            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="14,2,6,2"/>
-            <ComboBox x:Name="CmbTag" Width="150" VerticalAlignment="Center" Margin="0,2,0,2"/>
-            <CheckBox x:Name="ChkOnlySelected" Content="nur gewählter Charakter" VerticalAlignment="Center" Margin="14,2,0,2"/>
-            <CheckBox x:Name="ChkHideAuto" Content="Auto-Sicherungen ausblenden" VerticalAlignment="Center" Margin="14,2,0,2"/>
+            <TextBlock Text="Tag:" VerticalAlignment="Center" Margin="10,2,6,2"/>
+            <ComboBox x:Name="CmbTag" Width="115" VerticalAlignment="Center" Margin="0,2,0,2"/>
+            <CheckBox x:Name="ChkOnlySelected" Content="nur dieser Charakter" VerticalAlignment="Center" Margin="10,2,0,2"/>
+            <CheckBox x:Name="ChkHideAuto" Content="ohne Auto-Sicherungen" VerticalAlignment="Center" Margin="10,2,0,2"/>
             <!-- Dreiwertig, deshalb Auswahlfeld statt Häkchen: "ausblenden"
                  allein liess sich nicht umkehren, man kam also nie dahin, nur
-                 die geloeschten zu sehen. Die Auswertung geht ueber den Index,
-                 nicht ueber den Text - sonst braeche sie auf Englisch. -->
-            <TextBlock Text="Papierkorb:" VerticalAlignment="Center" Margin="14,2,6,2"/>
-            <ComboBox x:Name="CmbTrash" Width="140" VerticalAlignment="Center" Margin="0,2,0,2" SelectedIndex="0"
+                 die geloeschten zu sehen. Ohne Beschriftung davor - die
+                 Einstellungen sagen selbst, was sie tun, und die gesparte
+                 Breite haelt die Filterzeile einzeilig. Die Auswertung geht
+                 ueber den Index, nicht ueber den Text: sonst braeche sie in der
+                 englischen Oberflaeche. -->
+            <ComboBox x:Name="CmbTrash" Width="130" VerticalAlignment="Center" Margin="10,2,0,2" SelectedIndex="0"
                       ToolTip="Steuert nur die Anzeige der gelöschten Charaktere in dieser Liste. Am Papierkorb selbst ändert das nichts.">
-              <ComboBoxItem Content="mit anzeigen"/>
-              <ComboBoxItem Content="ausblenden"/>
+              <ComboBoxItem Content="alle Einträge"/>
+              <ComboBoxItem Content="ohne Papierkorb"/>
               <ComboBoxItem Content="nur Papierkorb"/>
             </ComboBox>
           </WrapPanel>
@@ -1744,7 +1699,7 @@ $MainXaml = @'
         <GroupBox Grid.Row="2" Header="Snapshots">
           <DataGrid x:Name="GridSnaps" AutoGenerateColumns="False" IsReadOnly="True"
                     RowStyle="{StaticResource AuswahlZeile}" CellStyle="{StaticResource AuswahlZelle}"
-                    SelectionMode="Single" HeadersVisibility="Column"
+                    SelectionMode="Extended" HeadersVisibility="Column"
                     GridLinesVisibility="Horizontal" RowHeaderWidth="0" Margin="2">
             <!-- Die Breiten sind knapp gerechnet: acht Spalten müssen in die
                  rechte Hälfte passen, sonst schiebt sich die letzte (Größe) aus
@@ -2294,16 +2249,25 @@ $script:TextsEn = @{
     'Papierkorb' = 'Recycle bin'
     'Charakter löschen' = 'Delete character'
     'Papierkorb leeren' = 'Empty the recycle bin'
-    'Papierkorb:' = 'Recycle bin:'
-    'mit anzeigen' = 'show as well'
-    'ausblenden' = 'hide'
-    'nur Papierkorb' = 'only recycle bin'
+    'alle Einträge' = 'all entries'
+    'ohne Papierkorb' = 'without recycle bin'
+    'nur Papierkorb' = 'recycle bin only'
     'Steuert nur die Anzeige der gelöschten Charaktere in dieser Liste. Am Papierkorb selbst ändert das nichts.' = 'Controls only how deleted characters appear in this list. It changes nothing about the recycle bin itself.'
     'Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken.' = 'Delete - into the program''s own recycle bin, not gone right away. A backup is made first. Only taking it out of the game''s list? Park it instead.'
     'Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Removes everything in the recycle bin - no matter what is selected in the list. The backups made before each deletion remain.'
     'Leeren' = 'Empty'
-    'Markierter Eintrag' = 'Selected entry'
+    'Markierte Einträge' = 'Selected entries'
     'Endgültig löschen' = 'Delete for good'
+    'nur dieser Charakter' = 'this character only'
+    'ohne Auto-Sicherungen' = 'without automatic backups'
+    'Bitte mindestens einen Eintrag in der Liste auswählen.' = 'Please select at least one entry in the list.'
+    'Diesen Eintrag endgültig löschen?' = 'Delete this entry for good?'
+    '{0} markierte Einträge endgültig löschen? Zusammen {1}.' = 'Delete {0} selected entries for good? {1} in total.'
+    '... und {0} weitere' = '... and {0} more'
+    'Damit ist der schnelle Rückweg weg. Die Sicherungen, die vor dem Löschen angelegt wurden, bleiben bestehen.' = 'That removes the quick way back. The backups made before deleting remain.'
+    'Darunter sind {0} Papierkorb-Eintrag/-Einträge - für die ist danach der schnelle Rückweg weg.' = 'Among them are {0} recycle bin entries - for those, the quick way back is gone afterwards.'
+    'Aus dem Papierkorb löschen' = 'Delete from the recycle bin'
+    '{0} Eintrag/Einträge gelöscht.' = '{0} entry/entries deleted.'
     'Papierkorb-Eintrag löschen' = 'Delete recycle bin entry'
     'Damit ist der schnelle Rückweg für diesen Charakter weg. Die Sicherung, die vor dem Löschen angelegt wurde, bleibt bestehen.' = 'That removes the quick way back for this character. The backup made before deleting remains.'
     'ist leer' = 'is empty'
@@ -2485,8 +2449,6 @@ $CmbTag          = $win.FindName('CmbTag')
 $ChkOnlySelected = $win.FindName('ChkOnlySelected')
 $ChkHideAuto     = $win.FindName('ChkHideAuto')
 $CmbTrash        = $win.FindName('CmbTrash')
-$TxtTrashInfo    = $win.FindName('TxtTrashInfo')
-$BtnEmptyTrash   = $win.FindName('BtnEmptyTrash')
 $BtnDelete       = $win.FindName('BtnDelete')
 $BtnRestore      = $win.FindName('BtnRestore')
 $ChkHidePark     = $win.FindName('ChkHidePark')
@@ -2705,6 +2667,16 @@ function Get-SelectedSnapshotRecord {
     $script:Index.snapshots | Where-Object { $_.id -eq $row.id } | Select-Object -First 1
 }
 
+# Alle markierten Einträge. Löschen arbeitet darauf, damit sich der Papierkorb
+# über Filter plus Mehrfachauswahl leeren lässt, statt über einen eigenen Knopf.
+function Get-SelectedSnapshotRecords {
+    $ids = @($GridSnaps.SelectedItems | ForEach-Object { $_.id })
+    if ($ids.Count -eq 0) { return @() }
+    # Reihenfolge der Liste beibehalten, nicht die des Index - die Rückfrage
+    # zählt sonst anders auf, als man markiert hat.
+    @($ids | ForEach-Object { $id = $_; $script:Index.snapshots | Where-Object { $_.id -eq $id } | Select-Object -First 1 } | Where-Object { $_ })
+}
+
 function Update-TagFilter {
     $current = $CmbTag.SelectedItem
     $tags = @($script:Index.snapshots | ForEach-Object { @($_.tags) } | Where-Object { $_ } | Sort-Object -Unique)
@@ -2714,26 +2686,16 @@ function Update-TagFilter {
     if ($current -and $CmbTag.Items.Contains($current)) { $CmbTag.SelectedItem = $current } else { $CmbTag.SelectedIndex = 0 }
 }
 
-# Bei einem Papierkorb-Eintrag sagt der Knopf, dass es diesmal wirklich endgültig
-# ist - dort liegen die Originaldateien, nicht eine Kopie wie bei jedem anderen
-# Eintrag der Liste.
+# Der Knopf nennt die Anzahl, sobald mehrere Zeilen markiert sind - sonst sieht
+# man vor dem Klick nicht, wie weit die Markierung reicht. Sind es lauter
+# Papierkorb-Einträge, sagt er zusätzlich, dass es diesmal wirklich endgültig
+# ist: dort liegen die Originaldateien, nicht eine Kopie.
 function Update-DeleteButtonLabel {
-    $rec = Get-SelectedSnapshotRecord
-    $BtnDelete.Content = if ($rec -and $rec.kind -eq 'trash') { T 'Endgültig löschen' } else { T 'Löschen' }
-}
-
-# Sagt neben dem Leeren-Knopf, worauf er sich bezieht. Ist nichts drin, wird der
-# Knopf gesperrt - ein Knopf, der auf Nichts wirkt, wirft sonst die Frage auf, ob
-# man gerade etwas übersehen hat.
-function Update-TrashInfo {
-    $stat = Get-TrashStats
-    if ($stat.Count -eq 0) {
-        $TxtTrashInfo.Text     = T 'ist leer'
-        $BtnEmptyTrash.IsEnabled = $false
-    } else {
-        $TxtTrashInfo.Text     = (T '{0} Charakter(e), {1}') -f $stat.Count, (Format-Size $stat.Bytes)
-        $BtnEmptyTrash.IsEnabled = $true
-    }
+    $recs  = @(Get-SelectedSnapshotRecords)
+    $trash = @($recs | Where-Object { $_.kind -eq 'trash' }).Count
+    $text  = if ($recs.Count -gt 0 -and $trash -eq $recs.Count) { T 'Endgültig löschen' } else { T 'Löschen' }
+    if ($recs.Count -gt 1) { $text += " ($($recs.Count))" }
+    $BtnDelete.Content = $text
 }
 
 function Update-SnapshotGrid {
@@ -2765,7 +2727,6 @@ function Update-SnapshotGrid {
         2 { $rows = @($rows | Where-Object { $_.kind -eq 'trash' }) }
     }
 
-    Update-TrashInfo
     $GridSnaps.ItemsSource = @($rows | Sort-Object SortKey -Descending)
     Restore-GridSort $GridSnaps $script:Config.SortSnaps
     Set-Status ((T "{0} Snapshot(s) angezeigt, {1} insgesamt.") -f $GridSnaps.Items.Count, $script:Index.snapshots.Count)
@@ -3493,39 +3454,6 @@ $win.FindName('BtnDeleteChar').Add_Click({
     }
 })
 
-$win.FindName('BtnEmptyTrash').Add_Click({
-    $stat = Get-TrashStats
-    if ($stat.Count -eq 0) {
-        [void][System.Windows.MessageBox]::Show(
-            (T 'Der Papierkorb ist leer.'), $script:AppName, 'OK', 'Information')
-        return
-    }
-
-    $frage = ((T '{0} gelöschte(r) Charakter(e) liegen im Papierkorb, zusammen {1}.') -f $stat.Count, (Format-Size $stat.Bytes)) + "`n`n" +
-             (T 'Es wird der gesamte Papierkorb geleert - unabhängig davon, was in der Liste markiert ist. Einen einzelnen Eintrag entfernst du mit "Löschen".') + "`n`n" +
-             (T 'Beim Leeren werden diese Dateien endgültig entfernt.') + "`n`n" +
-             (T 'Die Sicherungen, die vor jedem Löschen angelegt wurden, bleiben bestehen - über sie lässt sich ein Charakter auch danach noch zurückholen.')
-    if ([System.Windows.MessageBox]::Show($frage, (T 'Papierkorb leeren'), 'YesNo', 'Warning') -ne 'Yes') {
-        Set-Status (T 'Leeren abgebrochen.')
-        return
-    }
-
-    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
-    try {
-        $anzahl = Clear-Trash
-    } catch {
-        [System.Windows.Input.Mouse]::OverrideCursor = $null
-        [void][System.Windows.MessageBox]::Show($_.Exception.Message, $script:AppName, 'OK', 'Warning')
-        Update-All
-        return
-    } finally {
-        [System.Windows.Input.Mouse]::OverrideCursor = $null
-    }
-
-    Update-All
-    Set-Status ((T 'Papierkorb geleert - {0} Eintrag/Einträge entfernt.') -f $anzahl)
-})
-
 $win.FindName('BtnUnpark').Add_Click({
     $rows    = @(Get-SelectedCharRows)
     $geparkt = @($rows | Where-Object { $_.Parked })
@@ -3621,37 +3549,67 @@ $win.FindName('BtnRestore').Add_Click({
 })
 
 $win.FindName('BtnDelete').Add_Click({
-    $rec = Get-SelectedSnapshotRecord
-    if (-not $rec) {
-        [void][System.Windows.MessageBox]::Show((T 'Bitte einen Snapshot auswählen.'), $script:AppName, 'OK', 'Information')
+    $recs = @(Get-SelectedSnapshotRecords)
+    if ($recs.Count -eq 0) {
+        [void][System.Windows.MessageBox]::Show((T 'Bitte mindestens einen Eintrag in der Liste auswählen.'), $script:AppName, 'OK', 'Information')
         return
     }
-    $created = Format-Timestamp $rec.created (Get-DateFormat)
-    $what = switch ($rec.kind) {
-        'full'  { T 'Kompletter Ordner' }
-        'trash' { (T 'Papierkorb') + " - " + (T 'Charakter') + " '$($rec.char)'" }
-        default { (T 'Charakter') + " '$($rec.char)'" }
+
+    $ausPapierkorb = @($recs | Where-Object { $_.kind -eq 'trash' })
+
+    if ($recs.Count -eq 1) {
+        $rec     = $recs[0]
+        $created = Format-Timestamp $rec.created (Get-DateFormat)
+        $what    = switch ($rec.kind) {
+            'full'  { T 'Kompletter Ordner' }
+            'trash' { (T 'Papierkorb') + " - " + (T 'Charakter') + " '$($rec.char)'" }
+            default { (T 'Charakter') + " '$($rec.char)'" }
+        }
+        $kopf = (T 'Diesen Eintrag endgültig löschen?') + "`n`n$what " + $created + "`n" + (T 'Label:') + " $($rec.label)"
+    } else {
+        $summe = [long](@($recs | ForEach-Object { [long]$_.sizeBytes }) | Measure-Object -Sum).Sum
+        $kopf  = ((T '{0} markierte Einträge endgültig löschen? Zusammen {1}.') -f $recs.Count, (Format-Size $summe))
+        # Die ersten Namen ausschreiben: bei Mehrfachauswahl sieht man sonst
+        # nicht, ob versehentlich eine Zeile mehr markiert war.
+        $namen = @($recs | ForEach-Object { if ($_.kind -eq 'full') { T 'Kompletter Ordner' } else { $_.char } } | Select-Object -First 8)
+        $kopf += "`n`n" + ($namen -join ', ')
+        if ($recs.Count -gt $namen.Count) { $kopf += ' ' + ((T '... und {0} weitere') -f ($recs.Count - $namen.Count)) }
     }
-    # Bei einem Papierkorb-Eintrag liegen hier die Originaldateien. "Die
+
+    # Bei Papierkorb-Einträgen liegen die Originaldateien im Ordner. "Die
     # Spielstände bleiben unberührt" wäre zwar wahr, klänge aber harmloser als
     # es ist: man wirft den Rückweg weg, nicht eine Kopie.
-    $hinweis = if ($rec.kind -eq 'trash') {
-        T 'Damit ist der schnelle Rückweg für diesen Charakter weg. Die Sicherung, die vor dem Löschen angelegt wurde, bleibt bestehen.'
+    $hinweis = if ($ausPapierkorb.Count -eq $recs.Count) {
+        T 'Damit ist der schnelle Rückweg weg. Die Sicherungen, die vor dem Löschen angelegt wurden, bleiben bestehen.'
+    } elseif ($ausPapierkorb.Count -gt 0) {
+        ((T 'Darunter sind {0} Papierkorb-Eintrag/-Einträge - für die ist danach der schnelle Rückweg weg.') -f $ausPapierkorb.Count) +
+        "`n" + (T 'Die Spielstände selbst bleiben unberührt.')
     } else {
         T 'Die Spielstände selbst bleiben unberührt.'
     }
-    $titel = if ($rec.kind -eq 'trash') { T 'Papierkorb-Eintrag löschen' } else { T 'Snapshot löschen' }
-    $ans = [System.Windows.MessageBox]::Show(
-        ((T 'Snapshot endgültig löschen?') + "`n`n$what " + $created + "`n" + (T 'Label:') + " $($rec.label)`n`n" + $hinweis),
-        $titel, 'YesNo', 'Warning')
-    if ($ans -ne 'Yes') { return }
+
+    $titel = if ($ausPapierkorb.Count -eq $recs.Count -and $recs.Count -gt 0) { T 'Aus dem Papierkorb löschen' } else { T 'Löschen' }
+    if ([System.Windows.MessageBox]::Show(($kopf + "`n`n" + $hinweis), $titel, 'YesNo', 'Warning') -ne 'Yes') { return }
+
+    $weg = 0; $fehler = @()
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
     try {
-        Remove-Snapshot $rec
-        Clear-Details
-        Update-All
-        Set-Status (T 'Snapshot gelöscht.')
-    } catch {
-        [void][System.Windows.MessageBox]::Show(((T 'Löschen fehlgeschlagen:') + "`n`n" + $_.Exception.Message), $script:AppName, 'OK', 'Error')
+        foreach ($rec in $recs) {
+            try { Remove-Snapshot $rec; $weg++ }
+            catch { $fehler += "$($rec.char): $($_.Exception.Message)" }
+        }
+    } finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+
+    Clear-Details
+    Update-All
+    Set-Status ((T '{0} Eintrag/Einträge gelöscht.') -f $weg)
+
+    if ($fehler.Count -gt 0) {
+        [void][System.Windows.MessageBox]::Show(
+            ((T 'Löschen fehlgeschlagen:') + "`n`n" + [string]::Join([Environment]::NewLine, $fehler)),
+            $script:AppName, 'OK', 'Error')
     }
 })
 
@@ -3688,17 +3646,22 @@ $GridSnaps.Add_PreviewMouseRightButtonDown({
         $obj = [System.Windows.Media.VisualTreeHelper]::GetParent($obj)
     }
     if ($obj -is [System.Windows.Controls.DataGridRow]) {
-        $GridSnaps.SelectedItem = $obj.Item
+        # Eine bestehende Mehrfachauswahl nicht zerstören: wer mehrere Zeilen
+        # markiert hat und eine davon mit rechts anklickt, meint alle.
+        if (-not $obj.IsSelected) { $GridSnaps.SelectedItem = $obj.Item }
     }
 })
 
 # Beschriftung erst beim Aufklappen setzen: dann stimmt sie auch, wenn die
 # Markierung sich gerade eben geändert hat.
 $script:SnapMenu.Add_Opened({
-    $rec = Get-SelectedSnapshotRecord
-    $script:MnuDelete.Header = if ($rec -and $rec.kind -eq 'trash') { T 'Endgültig löschen' } else { T 'Löschen' }
-    $mnuRestore.IsEnabled     = [bool]$rec
-    $script:MnuDelete.IsEnabled = [bool]$rec
+    $recs = @(Get-SelectedSnapshotRecords)
+    Update-DeleteButtonLabel
+    $script:MnuDelete.Header    = $BtnDelete.Content
+    $script:MnuDelete.IsEnabled = ($recs.Count -gt 0)
+    # Wiederherstellen geht immer nur für einen: der Dialog fragt nach Zielname
+    # und Stash, und beides ist pro Charakter eine eigene Entscheidung.
+    $mnuRestore.IsEnabled       = ($recs.Count -eq 1)
 }.GetNewClosure())
 
 $win.FindName('BtnSaveMeta').Add_Click({

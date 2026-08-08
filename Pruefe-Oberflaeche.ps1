@@ -82,10 +82,28 @@ Pruef "nur Papierkorb: alle dabei"   (@($GridSnaps.Items).Count -eq $mitTrash) @
 $CmbTrash.SelectedIndex = 0; Update-SnapshotGrid
 Pruef "zurueck auf alles"            (@($GridSnaps.Items).Count -eq $alle)
 
-"--- Papierkorb-Anzeige ---"
-Pruef "Anzeige gefuellt"            (-not [string]::IsNullOrWhiteSpace($TxtTrashInfo.Text)) $TxtTrashInfo.Text
-Pruef "Knopf frei wenn etwas drin"  ($BtnEmptyTrash.IsEnabled -eq ($trash.Count -gt 0))
-"  Text: '$($TxtTrashInfo.Text)'"
+"--- Mehrfachauswahl ---"
+# Den Papierkorb leert man jetzt ueber Filter plus Mehrfachauswahl, nicht ueber
+# einen eigenen Knopf. Also muss die Liste mehrere Zeilen zulassen.
+Pruef "Liste erlaubt mehrere Zeilen" ($GridSnaps.SelectionMode -eq 'Extended') $GridSnaps.SelectionMode
+
+$CmbTrash.SelectedIndex = 2; Update-SnapshotGrid    # nur Papierkorb
+$GridSnaps.SelectAll()
+$markiert = @(Get-SelectedSnapshotRecords)
+Pruef "SelectAll erfasst alle"       ($markiert.Count -eq @($GridSnaps.Items).Count) $markiert.Count
+Pruef "nur Papierkorb markiert"      (@($markiert | Where-Object { $_.kind -ne 'trash' }).Count -eq 0)
+Update-DeleteButtonLabel
+Pruef "Knopf sagt endgueltig"        ($BtnDelete.Content -like 'Endgültig löschen*') $BtnDelete.Content
+
+$CmbTrash.SelectedIndex = 0; Update-SnapshotGrid
+$GridSnaps.SelectAll()
+$alleM = @(Get-SelectedSnapshotRecords)
+Update-DeleteButtonLabel
+# Gemischte Auswahl: nicht "endgueltig", denn es sind auch gewoehnliche
+# Sicherungen dabei - aber die Anzahl muss dranstehen.
+Pruef "gemischt: nicht endgueltig"   ($BtnDelete.Content -notlike 'Endgültig*') $BtnDelete.Content
+Pruef "Knopf nennt die Anzahl"       ($BtnDelete.Content -like "*($($alleM.Count))*") $BtnDelete.Content
+$GridSnaps.UnselectAll()
 
 ""
 "ERGEBNIS: $ok bestanden, $fail fehlgeschlagen"

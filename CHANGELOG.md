@@ -34,10 +34,15 @@ stands behind a separator, because it is the only one that takes something away.
     character would reappear in the D2R selection without this program knowing.
   - Location `_Papierkorb\` next to the backups, one folder per deletion with a
     timestamp in its name and an `_INFO.txt`. Entries show up in the snapshot list
-    marked as "Recycle bin", can be filtered away with a new checkbox, and can be
-    brought back the ordinary way — including under a different name.
-  - **No automatic cleanup, no age limit.** Emptying happens only when you ask
-    for it, and the confirmation states how many characters and how much data it
+    marked as "Recycle bin" and can be brought back the ordinary way — including
+    under a different name.
+  - **No separate "empty" button.** Emptying is the same move as any other
+    deletion: set the filter to *recycle bin only*, select everything, press
+    Delete. For that the snapshot list now allows **multiple selection**; the
+    Delete button shows the count and reads *Delete for good* when only recycle
+    bin entries are selected.
+  - **No automatic cleanup, no age limit.** Deleting happens only when you ask
+    for it, and the confirmation states how many entries and how much data it
     concerns.
   - Files are copied and verified first and only then removed, never the other way
     round. If the backup folder cannot be reached, deleting does not start at all.
@@ -51,6 +56,11 @@ missing from the selection. The field now turns red and the button greys out as
 soon as a name will not work; orange marks the cases that are allowed but worth a
 second thought, such as an existing name that would be overwritten when restoring.
 Collision checking includes parked characters, which used to be a blind spot.
+
+**Snapshot list:** multiple selection, a right-click menu with *Restore…* and
+*Delete*, and a filter for the recycle bin (*all entries* / *without recycle bin* /
+*recycle bin only*). The button group above it is named after what it acts on —
+the selected entries — instead of after the kind of thing in the list.
 
 Not covered: parked characters cannot be renamed, duplicated or deleted directly.
 Bring them back first. The mandatory backup does not reach into project folders,

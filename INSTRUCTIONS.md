@@ -250,25 +250,32 @@ Deleted characters appear in the snapshot list on the right with the type
 **Recycle bin**. From there you bring them back the ordinary way via
 **Restore…**, under a different name if you like.
 
-Above the list, the **Recycle bin:** box controls what you see:
+There is a filter for it at the far right above the list:
 
-* **show as well** — everything together (default)
-* **hide** — only the ordinary backups
-* **only recycle bin** — just the deleted characters, handy for tidying up
+* **all entries** — backups and recycle bin together (default)
+* **without recycle bin** — only the ordinary backups
+* **recycle bin only** — just the deleted characters, handy for tidying up
 
 This affects the display only; it changes nothing about the recycle bin itself.
 
 ### Emptying the recycle bin
 
-There is a **group of its own, "Recycle bin"**, at the top right with an **Empty**
-button. Next to it you can see how much is in there; when it is empty, the button
-is greyed out.
+There is **no separate button** for it — it works like deleting any other entry:
 
-Important: **emptying always affects the whole recycle bin**, not whatever you
-have selected in the list. To get rid of a single entry for good, select it in the
-list and use **Delete** in the **Selected entry** group — or, quicker,
-**right-click the row**. For a recycle bin entry the command reads *Delete for
-good*, so it is clear that the original files are meant this time.
+1. Set the filter at the top right to **recycle bin only**.
+2. Select everything in the list (**Ctrl+A**, or click the first row and
+   shift-click the last).
+3. Press **Delete**.
+
+The button then reads *Delete for good* and shows the count in brackets. The
+confirmation states how many entries and how much disk space are affected.
+
+A **single** entry goes the same way: select it and delete — or, quicker,
+**right-click the row**.
+
+**Nothing is ever cleaned up on its own** — there is no age limit and no automatic
+purge. And even afterwards the characters are not lost: the backups made before
+each deletion remain. What is gone for good is only the quick way back.
 
 **Nothing is ever cleaned up on its own** — there is no age limit and no automatic
 purge. And even after emptying, the characters are not lost: the backups made

@@ -169,7 +169,7 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 230 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 227 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
 Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
@@ -284,8 +284,8 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 230 Prüfungen gegen die Sandbox in `_sandbox\` |
-| `Pruefe-Oberflaeche.ps1` | 17 Prüfungen der Fenster-Verdrahtung (Kontextmenü, Knopfbeschriftungen, Filter) |
+| `Test-Sandbox.ps1` | 227 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `Pruefe-Oberflaeche.ps1` | 21 Prüfungen der Fenster-Verdrahtung (Kontextmenü, Knopfbeschriftungen, Filter) |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
@@ -544,14 +544,31 @@ im Explorer sichtbar, auch ohne das Programm zurückzukopieren.
   löscht. Eine Löschung, die durchs Raster fiele, wäre genau die eine, die niemand
   prüfen kann. Beim Ändern dieser Stelle also nicht auf .NET-Methoden ausweichen — und
   die Zahl im README mitzählen (Stand 1.3: acht Stellen).
-- **Der Papierkorb hat eine eigene Gruppe.** Anfangs stand „Leeren" als roter
-  Symbolknopf direkt neben „Löschen" — zwei rote Knöpfe, sinngemäß derselbe Name, aber
-  verschieden weite Wirkung: „Löschen" auf die markierte Zeile, „Leeren" auf alles. Der
-  Captain hat am 08.08.2026 prompt gefragt, warum von zwei Charakteren die Rede sei,
-  wenn nur einer markiert ist. Die Zahl stimmte, die Gruppierung log. Jetzt: eigene
-  GroupBox „Papierkorb" mit Textknopf *Leeren* und der Mengenangabe daneben, bei leerem
-  Papierkorb gesperrt. Die Rückfrage sagt zusätzlich, dass die Markierung keine Rolle
-  spielt und wofür „Löschen" da ist.
+- **Kein eigener Knopf zum Leeren — die Markierung entscheidet.** Das hat zwei Anläufe
+  gebraucht. Zuerst stand „Leeren" als roter Symbolknopf neben „Löschen": zwei rote
+  Knöpfe, sinngemäß derselbe Name, aber verschieden weite Wirkung. Der Captain fragte
+  prompt, warum von zwei Charakteren die Rede sei, wenn nur einer markiert ist — die
+  Zahl stimmte, die Gruppierung log. Der zweite Anlauf, eine eigene GroupBox
+  „Papierkorb" mit Mengenangabe, war immer noch daneben: die Liste enthält *beides*,
+  und wer einen Papierkorb-Eintrag markiert hatte, suchte die Löschung folgerichtig
+  beim Papierkorb-Knopf.
+
+  **Endstand, vom Captain vorgegeben:** eine Gruppe „Markierte Einträge" mit genau zwei
+  Aktionen — *Wiederherstellen…* und *Löschen*. Was passiert, entscheidet die
+  Markierung; die Filter darunter sind das Werkzeug, sie herzustellen. Der Papierkorb
+  wird geleert, indem man auf „nur Papierkorb" filtert, alles markiert und löscht.
+  `Clear-Trash` und `Get-TrashStats` sind damit ersatzlos entfallen — `Remove-Snapshot`
+  räumt die leere `_Papierkorb`-Wurzel ohnehin mit weg.
+
+  Dafür kann die Snapshot-Liste jetzt **Mehrfachauswahl** (`SelectionMode="Extended"`).
+  Der Löschen-Knopf nennt die Anzahl in Klammern und heißt *Endgültig löschen*, sobald
+  ausschließlich Papierkorb-Einträge markiert sind. Beim Rechtsklick bleibt eine
+  bestehende Mehrfachauswahl erhalten, wenn die angeklickte Zeile dazugehört — sonst
+  hätte das Menü die Auswahl zerstört, die man gerade aufgebaut hat.
+
+  Lehre fürs nächste Mal: Wenn zwei Knöpfe dasselbe Wort tragen und sich nur in der
+  Reichweite unterscheiden, ist nicht die Beschriftung das Problem, sondern dass es
+  zwei Knöpfe sind.
 - **Der Löschen-Dialog unterscheidet Papierkorb-Einträge.** Bei einem Snapshot stimmt
   „Die Spielstände selbst bleiben unberührt"; bei einem Papierkorb-Eintrag liegen dort
   die Originale, und der Satz klänge harmloser als die Lage ist. Dort steht deshalb,
