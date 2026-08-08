@@ -1535,6 +1535,20 @@ $MainXaml = @'
       <Setter Property="Foreground"  Value="#333333"/>
       <Setter Property="MinWidth"    Value="72"/>
     </Style>
+
+    <!-- Ohne diesen Style zieht WPF jeden Tooltip zu einer einzigen Zeile
+         auseinander, quer über den halben Bildschirm. Gilt ohne x:Key für alle
+         Tooltips im Fenster, auch die schon vorhandenen. -->
+    <Style TargetType="ToolTip">
+      <Setter Property="MaxWidth" Value="320"/>
+      <Setter Property="ContentTemplate">
+        <Setter.Value>
+          <DataTemplate>
+            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+          </DataTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
 
   <DockPanel>
@@ -1628,14 +1642,14 @@ $MainXaml = @'
           <GroupBox Header="Charakter" Padding="8,4,8,6" Margin="10,0,0,4">
             <WrapPanel Orientation="Horizontal">
               <Button x:Name="BtnRename" Style="{StaticResource IconButton}" Content="&#xE8AC;" Margin="0,0,6,4"
-                      ToolTip="Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen."/>
+                      ToolTip="Umbenennen. Alle Dateien wandern mit, vorher wird gesichert. Level und Ausrüstung bleiben unberührt."/>
               <Button x:Name="BtnCopy" Style="{StaticResource IconButton}" Content="&#xE8C8;" Margin="0,0,6,4"
-                      ToolTip="Legt eine Kopie des markierten Charakters unter neuem Namen an. Das Original bleibt stehen, der Shared Stash wird nicht mitkopiert."/>
+                      ToolTip="Kopie unter neuem Namen anlegen. Das Original bleibt stehen, ohne Shared Stash."/>
               <!-- Löschen steht hinter einem Trenner und ist rot: es ist die
                    einzige Aktion hier, die etwas wegnimmt. -->
               <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
               <Button x:Name="BtnDeleteChar" Style="{StaticResource IconButton}" Content="&#xE74D;" Foreground="#B00020" Margin="0,0,0,4"
-                      ToolTip="Löscht den markierten Charakter. Vorher wird gesichert, und die Dateien wandern in den Papierkorb des Programms statt sofort weg. Wer den Charakter nur aus der Spielauswahl nehmen will, parkt ihn."/>
+                      ToolTip="Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken."/>
             </WrapPanel>
           </GroupBox>
         </WrapPanel>
@@ -1678,7 +1692,7 @@ $MainXaml = @'
             <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4">Löschen</Button>
             <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
             <Button x:Name="BtnEmptyTrash" Style="{StaticResource IconButton}" Content="&#xE74D;" Foreground="#B00020" Margin="0,0,6,4"
-                    ToolTip="Leert den Papierkorb. Die dort liegenden Charaktere sind danach endgültig weg - die Sicherungen, die vor dem Löschen angelegt wurden, bleiben aber bestehen."/>
+                    ToolTip="Papierkorb leeren. Die Sicherungen von vor dem Löschen bleiben bestehen."/>
             <Button x:Name="BtnOpenBackup" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="0,0,0,4"
                     ToolTip="Backup-Ordner im Explorer anzeigen"/>
           </WrapPanel>
@@ -2217,7 +2231,7 @@ $script:TextsEn = @{
     'Vorher wird automatisch gesichert. Der Name steht nur im Dateinamen - in die Spielstanddatei selbst wird nicht eingegriffen, Level, Ausrüstung und Fortschritt bleiben unberührt.' = 'A backup is made first. The name only lives in the file name - the save file itself is not touched, so level, gear and progress stay as they are.'
     'Umbenennen' = 'Rename'
     # 'Charakter' steht schon weiter oben - der Gruppenkopf nutzt denselben Eintrag.
-    'Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen.' = 'Renames the selected character. All of its files are renamed with it, and a backup is made first. Level and gear stay untouched - the name only lives in the file name.'
+    'Umbenennen. Alle Dateien wandern mit, vorher wird gesichert. Level und Ausrüstung bleiben unberührt.' = 'Rename. All files come along, a backup is made first. Level and gear stay untouched.'
     "Charakter '{0}' umbenennen ({1}, Level {2})." = "Rename character '{0}' ({1}, level {2})."
     'Der neue Name ist derselbe wie der alte.' = 'The new name is the same as the old one.'
     'Das ist der bisherige Name.' = 'That is the current name.'
@@ -2236,7 +2250,7 @@ $script:TextsEn = @{
     # Duplizieren
     'Charakter duplizieren' = 'Duplicate character'
     'Duplizieren' = 'Duplicate'
-    'Legt eine Kopie des markierten Charakters unter neuem Namen an. Das Original bleibt stehen, der Shared Stash wird nicht mitkopiert.' = 'Creates a copy of the selected character under a new name. The original stays as it is, and the shared stash is not copied along.'
+    'Kopie unter neuem Namen anlegen. Das Original bleibt stehen, ohne Shared Stash.' = 'Create a copy under a new name. The original stays as it is, without the shared stash.'
     "Charakter '{0}' unter neuem Namen kopieren ({1}, Level {2})." = "Copy character '{0}' under a new name ({1}, level {2})."
     'Das Original bleibt unverändert stehen. Der Shared Stash wird nicht mitkopiert - er gehört allen Charakteren gemeinsam.' = 'The original stays untouched. The shared stash is not copied along - it belongs to all characters at once.'
     'Die Kopie braucht einen anderen Namen als das Original - auch eine andere Schreibweise reicht Windows nicht.' = 'The copy needs a different name than the original - a different capitalisation is not enough for Windows.'
@@ -2256,8 +2270,8 @@ $script:TextsEn = @{
     'Papierkorb leeren' = 'Empty the recycle bin'
     'Papierkorb ausblenden' = 'Hide recycle bin'
     'Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts.' = 'Hides deleted characters from the list. It changes nothing about the recycle bin itself.'
-    'Löscht den markierten Charakter. Vorher wird gesichert, und die Dateien wandern in den Papierkorb des Programms statt sofort weg. Wer den Charakter nur aus der Spielauswahl nehmen will, parkt ihn.' = 'Deletes the selected character. A backup is made first, and the files move into the program''s own recycle bin instead of vanishing. To only take a character out of the game''s selection, park it instead.'
-    'Leert den Papierkorb. Die dort liegenden Charaktere sind danach endgültig weg - die Sicherungen, die vor dem Löschen angelegt wurden, bleiben aber bestehen.' = 'Empties the recycle bin. The characters in it are gone for good afterwards - but the backups made before each deletion remain.'
+    'Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken.' = 'Delete - into the program''s own recycle bin, not gone right away. A backup is made first. Only taking it out of the game''s list? Park it instead.'
+    'Papierkorb leeren. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Empty the recycle bin. The backups made before each deletion remain.'
     "Charakter '{0}' ({1}, Level {2}) wirklich löschen?" = "Really delete character '{0}' ({1}, level {2})?"
     'Vorher wird automatisch gesichert, und die Dateien wandern in den Papierkorb des Programms - sie sind also nicht sofort weg.' = 'A backup is made first, and the files move into the program''s own recycle bin - so they are not gone right away.'
     'Wer den Charakter nur aus der Charakterauswahl von D2R nehmen will, sollte ihn stattdessen parken.' = 'To only take the character out of the D2R character selection, park it instead.'
