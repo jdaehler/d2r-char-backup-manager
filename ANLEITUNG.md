@@ -261,7 +261,9 @@ Rechts oben gibt es dafür eine **eigene Gruppe „Papierkorb"** mit dem Knopf
 Wichtig: **Leeren betrifft immer den ganzen Papierkorb**, nicht das, was du in
 der Liste markiert hast. Willst du nur einen einzelnen Eintrag endgültig
 loswerden, markierst du ihn in der Liste und nimmst **Löschen** in der Gruppe
-daneben.
+**Markierter Eintrag** — oder, schneller, **Rechtsklick auf die Zeile**. Bei
+einem Papierkorb-Eintrag heißt der Befehl dort *Endgültig löschen*, damit klar
+ist, dass diesmal die Originaldateien gemeint sind.
 
 **Es wird nie von selbst aufgeräumt** — es gibt keine Altersgrenze und kein
 automatisches Leeren. Und auch nach dem Leeren sind die Charaktere nicht

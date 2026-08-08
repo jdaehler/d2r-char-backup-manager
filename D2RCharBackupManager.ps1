@@ -1692,10 +1692,14 @@ $MainXaml = @'
              alles. Die Überschrift und die Mengenangabe daneben sagen jetzt
              ohne Tooltip, worauf sich der Knopf bezieht. -->
         <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-        <GroupBox Header="Snapshots verwalten" Padding="8,4,8,6" Margin="0,0,10,4">
+        <!-- Überschrift nach der Wirkung, nicht nach dem Inhalt: die Liste
+             enthält seit dem Papierkorb nicht mehr nur Snapshots, und wer einen
+             Papierkorb-Eintrag markiert hatte, suchte die Löschung folgerichtig
+             beim Papierkorb-Knopf statt hier. -->
+        <GroupBox Header="Markierter Eintrag" Padding="8,4,8,6" Margin="0,0,10,4">
           <WrapPanel Orientation="Horizontal">
             <Button x:Name="BtnRestore" Style="{StaticResource NormalButton}" Margin="0,0,6,4">Wiederherstellen...</Button>
-            <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4">Löschen</Button>
+            <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4" MinWidth="150">Löschen</Button>
             <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
             <Button x:Name="BtnOpenBackup" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="0,0,0,4"
                     ToolTip="Backup-Ordner im Explorer anzeigen"/>
@@ -2286,6 +2290,8 @@ $script:TextsEn = @{
     'Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken.' = 'Delete - into the program''s own recycle bin, not gone right away. A backup is made first. Only taking it out of the game''s list? Park it instead.'
     'Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Removes everything in the recycle bin - no matter what is selected in the list. The backups made before each deletion remain.'
     'Leeren' = 'Empty'
+    'Markierter Eintrag' = 'Selected entry'
+    'Endgültig löschen' = 'Delete for good'
     'Papierkorb-Eintrag löschen' = 'Delete recycle bin entry'
     'Damit ist der schnelle Rückweg für diesen Charakter weg. Die Sicherung, die vor dem Löschen angelegt wurde, bleibt bestehen.' = 'That removes the quick way back for this character. The backup made before deleting remains.'
     'ist leer' = 'is empty'
@@ -2469,6 +2475,8 @@ $ChkHideAuto     = $win.FindName('ChkHideAuto')
 $ChkHideTrash    = $win.FindName('ChkHideTrash')
 $TxtTrashInfo    = $win.FindName('TxtTrashInfo')
 $BtnEmptyTrash   = $win.FindName('BtnEmptyTrash')
+$BtnDelete       = $win.FindName('BtnDelete')
+$BtnRestore      = $win.FindName('BtnRestore')
 $ChkHidePark     = $win.FindName('ChkHidePark')
 $ColLinks        = $win.FindName('ColLinks')
 $TxtLabel        = $win.FindName('TxtLabel')
@@ -2684,6 +2692,14 @@ function Update-TagFilter {
     $CmbTag.Items.Add((T '(alle)')) | Out-Null
     foreach ($t in $tags) { $CmbTag.Items.Add($t) | Out-Null }
     if ($current -and $CmbTag.Items.Contains($current)) { $CmbTag.SelectedItem = $current } else { $CmbTag.SelectedIndex = 0 }
+}
+
+# Bei einem Papierkorb-Eintrag sagt der Knopf, dass es diesmal wirklich endgültig
+# ist - dort liegen die Originaldateien, nicht eine Kopie wie bei jedem anderen
+# Eintrag der Liste.
+function Update-DeleteButtonLabel {
+    $rec = Get-SelectedSnapshotRecord
+    $BtnDelete.Content = if ($rec -and $rec.kind -eq 'trash') { T 'Endgültig löschen' } else { T 'Löschen' }
 }
 
 # Sagt neben dem Leeren-Knopf, worauf er sich bezieht. Ist nichts drin, wird der
@@ -3164,6 +3180,7 @@ $GridSnaps.Add_Sorting({
 })
 
 $GridSnaps.Add_SelectionChanged({
+    Update-DeleteButtonLabel
     $rec = Get-SelectedSnapshotRecord
     if (-not $rec) { Clear-Details; return }
     $TxtLabel.Text = [string]$rec.label
@@ -3616,6 +3633,52 @@ $win.FindName('BtnDelete').Add_Click({
         [void][System.Windows.MessageBox]::Show(((T 'Löschen fehlgeschlagen:') + "`n`n" + $_.Exception.Message), $script:AppName, 'OK', 'Error')
     }
 })
+
+# Rechtsklick auf die Liste. Die Einträge lösen dieselben Knöpfe aus, statt deren
+# Logik ein zweites Mal hinzuschreiben - sonst laufen Menü und Knopfleiste über
+# kurz oder lang auseinander.
+$script:SnapMenu = New-Object System.Windows.Controls.ContextMenu
+
+$mnuRestore = New-Object System.Windows.Controls.MenuItem
+$mnuRestore.Header = T 'Wiederherstellen...'
+$mnuRestore.Add_Click({
+    $BtnRestore.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+})
+[void]$script:SnapMenu.Items.Add($mnuRestore)
+
+$script:MnuDelete = New-Object System.Windows.Controls.MenuItem
+$script:MnuDelete.Header = T 'Löschen'
+$script:MnuDelete.Add_Click({
+    $BtnDelete.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+})
+[void]$script:SnapMenu.Items.Add($script:MnuDelete)
+
+$GridSnaps.ContextMenu = $script:SnapMenu
+
+# WPF markiert beim Rechtsklick **nicht** von selbst die Zeile darunter. Ohne das
+# hier stünde das Menü über einer Zeile, während die Markierung noch woanders
+# liegt - und man löschte den falschen Eintrag. Deshalb erst markieren, dann das
+# Menü aufgehen lassen.
+$GridSnaps.Add_PreviewMouseRightButtonDown({
+    param($sender, $e)
+    $obj = $e.OriginalSource
+    while ($obj -and -not ($obj -is [System.Windows.Controls.DataGridRow])) {
+        if (-not ($obj -is [System.Windows.DependencyObject])) { break }
+        $obj = [System.Windows.Media.VisualTreeHelper]::GetParent($obj)
+    }
+    if ($obj -is [System.Windows.Controls.DataGridRow]) {
+        $GridSnaps.SelectedItem = $obj.Item
+    }
+})
+
+# Beschriftung erst beim Aufklappen setzen: dann stimmt sie auch, wenn die
+# Markierung sich gerade eben geändert hat.
+$script:SnapMenu.Add_Opened({
+    $rec = Get-SelectedSnapshotRecord
+    $script:MnuDelete.Header = if ($rec -and $rec.kind -eq 'trash') { T 'Endgültig löschen' } else { T 'Löschen' }
+    $mnuRestore.IsEnabled     = [bool]$rec
+    $script:MnuDelete.IsEnabled = [bool]$rec
+}.GetNewClosure())
 
 $win.FindName('BtnSaveMeta').Add_Click({
     $rec = Get-SelectedSnapshotRecord

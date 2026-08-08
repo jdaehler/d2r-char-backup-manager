@@ -259,7 +259,9 @@ is greyed out.
 
 Important: **emptying always affects the whole recycle bin**, not whatever you
 have selected in the list. To get rid of a single entry for good, select it in the
-list and use **Delete** in the group next to it.
+list and use **Delete** in the **Selected entry** group — or, quicker,
+**right-click the row**. For a recycle bin entry the command reads *Delete for
+good*, so it is clear that the original files are meant this time.
 
 **Nothing is ever cleaned up on its own** — there is no age limit and no automatic
 purge. And even after emptying, the characters are not lost: the backups made
