@@ -253,8 +253,13 @@ Deleted characters appear in the snapshot list on the right with the type
 
 ### Emptying the recycle bin
 
-The red button above the snapshot list. It asks first, stating how many characters
-are in there and how much space they take.
+There is a **group of its own, "Recycle bin"**, at the top right with an **Empty**
+button. Next to it you can see how much is in there; when it is empty, the button
+is greyed out.
+
+Important: **emptying always affects the whole recycle bin**, not whatever you
+have selected in the list. To get rid of a single entry for good, select it in the
+list and use **Delete** in the group next to it.
 
 **Nothing is ever cleaned up on its own** — there is no age limit and no automatic
 purge. And even after emptying, the characters are not lost: the backups made

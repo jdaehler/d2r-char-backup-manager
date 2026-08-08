@@ -1686,17 +1686,30 @@ $MainXaml = @'
           <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Grid.Row="0" Header="Snapshots verwalten" Padding="8,4,8,6" Margin="0,0,0,6">
+        <!-- Der Papierkorb steht in einer eigenen Gruppe, nicht neben "Löschen".
+             Beide Knöpfe waren rot und hießen sinngemäß dasselbe, wirkten aber
+             verschieden weit: "Löschen" auf die markierte Zeile, "Leeren" auf
+             alles. Die Überschrift und die Mengenangabe daneben sagen jetzt
+             ohne Tooltip, worauf sich der Knopf bezieht. -->
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+        <GroupBox Header="Snapshots verwalten" Padding="8,4,8,6" Margin="0,0,10,4">
           <WrapPanel Orientation="Horizontal">
             <Button x:Name="BtnRestore" Style="{StaticResource NormalButton}" Margin="0,0,6,4">Wiederherstellen...</Button>
             <Button x:Name="BtnDelete"  Style="{StaticResource DangerButton}" Margin="0,0,6,4">Löschen</Button>
             <Border Width="1" Background="#D0D0D0" Margin="4,2,10,6"/>
-            <Button x:Name="BtnEmptyTrash" Style="{StaticResource IconButton}" Content="&#xE74D;" Foreground="#B00020" Margin="0,0,6,4"
-                    ToolTip="Papierkorb leeren. Die Sicherungen von vor dem Löschen bleiben bestehen."/>
             <Button x:Name="BtnOpenBackup" Style="{StaticResource IconButton}" Content="&#xE838;" Margin="0,0,0,4"
                     ToolTip="Backup-Ordner im Explorer anzeigen"/>
           </WrapPanel>
         </GroupBox>
+
+        <GroupBox Header="Papierkorb" Padding="8,4,8,6" Margin="0,0,0,4">
+          <WrapPanel Orientation="Horizontal">
+            <Button x:Name="BtnEmptyTrash" Style="{StaticResource DangerButton}" Margin="0,0,8,4"
+                    ToolTip="Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.">Leeren</Button>
+            <TextBlock x:Name="TxtTrashInfo" VerticalAlignment="Center" Foreground="#666" Margin="0,0,0,4"/>
+          </WrapPanel>
+        </GroupBox>
+        </WrapPanel>
 
         <!-- WrapPanel statt StackPanel: mit dem dritten Häkchen passt die Zeile
              nicht mehr in jede Fensterbreite und wurde am rechten Rand
@@ -2271,7 +2284,12 @@ $script:TextsEn = @{
     'Papierkorb ausblenden' = 'Hide recycle bin'
     'Blendet die gelöschten Charaktere aus der Liste aus. Am Papierkorb selbst ändert das nichts.' = 'Hides deleted characters from the list. It changes nothing about the recycle bin itself.'
     'Löschen - in den Papierkorb des Programms, nicht sofort weg. Vorher wird gesichert. Nur aus der Spielauswahl nehmen? Dann parken.' = 'Delete - into the program''s own recycle bin, not gone right away. A backup is made first. Only taking it out of the game''s list? Park it instead.'
-    'Papierkorb leeren. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Empty the recycle bin. The backups made before each deletion remain.'
+    'Entfernt alles, was im Papierkorb liegt - unabhängig davon, was in der Liste markiert ist. Die Sicherungen von vor dem Löschen bleiben bestehen.' = 'Removes everything in the recycle bin - no matter what is selected in the list. The backups made before each deletion remain.'
+    'Leeren' = 'Empty'
+    'Papierkorb-Eintrag löschen' = 'Delete recycle bin entry'
+    'Damit ist der schnelle Rückweg für diesen Charakter weg. Die Sicherung, die vor dem Löschen angelegt wurde, bleibt bestehen.' = 'That removes the quick way back for this character. The backup made before deleting remains.'
+    'ist leer' = 'is empty'
+    '{0} Charakter(e), {1}' = '{0} character(s), {1}'
     "Charakter '{0}' ({1}, Level {2}) wirklich löschen?" = "Really delete character '{0}' ({1}, level {2})?"
     'Vorher wird automatisch gesichert, und die Dateien wandern in den Papierkorb des Programms - sie sind also nicht sofort weg.' = 'A backup is made first, and the files move into the program''s own recycle bin - so they are not gone right away.'
     'Wer den Charakter nur aus der Charakterauswahl von D2R nehmen will, sollte ihn stattdessen parken.' = 'To only take the character out of the D2R character selection, park it instead.'
@@ -2289,6 +2307,7 @@ $script:TextsEn = @{
     'D2R wurde während des Löschens gestartet. Die Dateien sind vollständig im Papierkorb, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while deleting. The files are fully in the recycle bin, but please check in the game that everything is right.'
     'Der Papierkorb ist leer.' = 'The recycle bin is empty.'
     '{0} gelöschte(r) Charakter(e) liegen im Papierkorb, zusammen {1}.' = '{0} deleted character(s) are in the recycle bin, {1} in total.'
+    'Es wird der gesamte Papierkorb geleert - unabhängig davon, was in der Liste markiert ist. Einen einzelnen Eintrag entfernst du mit "Löschen".' = 'The whole recycle bin is emptied - no matter what is selected in the list. To remove a single entry, use "Delete".'
     'Beim Leeren werden diese Dateien endgültig entfernt.' = 'Emptying removes those files for good.'
     'Die Sicherungen, die vor jedem Löschen angelegt wurden, bleiben bestehen - über sie lässt sich ein Charakter auch danach noch zurückholen.' = 'The backups made before each deletion remain - a character can still be brought back through them afterwards.'
     'Leeren abgebrochen.' = 'Emptying cancelled.'
@@ -2448,6 +2467,8 @@ $CmbTag          = $win.FindName('CmbTag')
 $ChkOnlySelected = $win.FindName('ChkOnlySelected')
 $ChkHideAuto     = $win.FindName('ChkHideAuto')
 $ChkHideTrash    = $win.FindName('ChkHideTrash')
+$TxtTrashInfo    = $win.FindName('TxtTrashInfo')
+$BtnEmptyTrash   = $win.FindName('BtnEmptyTrash')
 $ChkHidePark     = $win.FindName('ChkHidePark')
 $ColLinks        = $win.FindName('ColLinks')
 $TxtLabel        = $win.FindName('TxtLabel')
@@ -2665,6 +2686,20 @@ function Update-TagFilter {
     if ($current -and $CmbTag.Items.Contains($current)) { $CmbTag.SelectedItem = $current } else { $CmbTag.SelectedIndex = 0 }
 }
 
+# Sagt neben dem Leeren-Knopf, worauf er sich bezieht. Ist nichts drin, wird der
+# Knopf gesperrt - ein Knopf, der auf Nichts wirkt, wirft sonst die Frage auf, ob
+# man gerade etwas übersehen hat.
+function Update-TrashInfo {
+    $stat = Get-TrashStats
+    if ($stat.Count -eq 0) {
+        $TxtTrashInfo.Text     = T 'ist leer'
+        $BtnEmptyTrash.IsEnabled = $false
+    } else {
+        $TxtTrashInfo.Text     = (T '{0} Charakter(e), {1}') -f $stat.Count, (Format-Size $stat.Bytes)
+        $BtnEmptyTrash.IsEnabled = $true
+    }
+}
+
 function Update-SnapshotGrid {
     $rows = @($script:Index.snapshots | ForEach-Object { ConvertTo-SnapshotRow $_ })
 
@@ -2693,6 +2728,7 @@ function Update-SnapshotGrid {
         $rows = @($rows | Where-Object { $_.kind -ne 'trash' })
     }
 
+    Update-TrashInfo
     $GridSnaps.ItemsSource = @($rows | Sort-Object SortKey -Descending)
     Restore-GridSort $GridSnaps $script:Config.SortSnaps
     Set-Status ((T "{0} Snapshot(s) angezeigt, {1} insgesamt.") -f $GridSnaps.Items.Count, $script:Index.snapshots.Count)
@@ -3428,6 +3464,7 @@ $win.FindName('BtnEmptyTrash').Add_Click({
     }
 
     $frage = ((T '{0} gelöschte(r) Charakter(e) liegen im Papierkorb, zusammen {1}.') -f $stat.Count, (Format-Size $stat.Bytes)) + "`n`n" +
+             (T 'Es wird der gesamte Papierkorb geleert - unabhängig davon, was in der Liste markiert ist. Einen einzelnen Eintrag entfernst du mit "Löschen".') + "`n`n" +
              (T 'Beim Leeren werden diese Dateien endgültig entfernt.') + "`n`n" +
              (T 'Die Sicherungen, die vor jedem Löschen angelegt wurden, bleiben bestehen - über sie lässt sich ein Charakter auch danach noch zurückholen.')
     if ([System.Windows.MessageBox]::Show($frage, (T 'Papierkorb leeren'), 'YesNo', 'Warning') -ne 'Yes') {
@@ -3552,10 +3589,23 @@ $win.FindName('BtnDelete').Add_Click({
         return
     }
     $created = Format-Timestamp $rec.created (Get-DateFormat)
-    $what = if ($rec.kind -eq 'full') { T 'Kompletter Ordner' } else { (T 'Charakter') + " '$($rec.char)'" }
+    $what = switch ($rec.kind) {
+        'full'  { T 'Kompletter Ordner' }
+        'trash' { (T 'Papierkorb') + " - " + (T 'Charakter') + " '$($rec.char)'" }
+        default { (T 'Charakter') + " '$($rec.char)'" }
+    }
+    # Bei einem Papierkorb-Eintrag liegen hier die Originaldateien. "Die
+    # Spielstände bleiben unberührt" wäre zwar wahr, klänge aber harmloser als
+    # es ist: man wirft den Rückweg weg, nicht eine Kopie.
+    $hinweis = if ($rec.kind -eq 'trash') {
+        T 'Damit ist der schnelle Rückweg für diesen Charakter weg. Die Sicherung, die vor dem Löschen angelegt wurde, bleibt bestehen.'
+    } else {
+        T 'Die Spielstände selbst bleiben unberührt.'
+    }
+    $titel = if ($rec.kind -eq 'trash') { T 'Papierkorb-Eintrag löschen' } else { T 'Snapshot löschen' }
     $ans = [System.Windows.MessageBox]::Show(
-        ((T 'Snapshot endgültig löschen?') + "`n`n$what " + $created + "`n" + (T 'Label:') + " $($rec.label)`n`n" + (T 'Die Spielstände selbst bleiben unberührt.')),
-        (T 'Snapshot löschen'), 'YesNo', 'Warning')
+        ((T 'Snapshot endgültig löschen?') + "`n`n$what " + $created + "`n" + (T 'Label:') + " $($rec.label)`n`n" + $hinweis),
+        $titel, 'YesNo', 'Warning')
     if ($ans -ne 'Yes') { return }
     try {
         Remove-Snapshot $rec

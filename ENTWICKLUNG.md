@@ -523,6 +523,18 @@ im Explorer sichtbar, auch ohne das Programm zurückzukopieren.
   löscht. Eine Löschung, die durchs Raster fiele, wäre genau die eine, die niemand
   prüfen kann. Beim Ändern dieser Stelle also nicht auf .NET-Methoden ausweichen — und
   die Zahl im README mitzählen (Stand 1.3: acht Stellen).
+- **Der Papierkorb hat eine eigene Gruppe.** Anfangs stand „Leeren" als roter
+  Symbolknopf direkt neben „Löschen" — zwei rote Knöpfe, sinngemäß derselbe Name, aber
+  verschieden weite Wirkung: „Löschen" auf die markierte Zeile, „Leeren" auf alles. Der
+  Captain hat am 08.08.2026 prompt gefragt, warum von zwei Charakteren die Rede sei,
+  wenn nur einer markiert ist. Die Zahl stimmte, die Gruppierung log. Jetzt: eigene
+  GroupBox „Papierkorb" mit Textknopf *Leeren* und der Mengenangabe daneben, bei leerem
+  Papierkorb gesperrt. Die Rückfrage sagt zusätzlich, dass die Markierung keine Rolle
+  spielt und wofür „Löschen" da ist.
+- **Der Löschen-Dialog unterscheidet Papierkorb-Einträge.** Bei einem Snapshot stimmt
+  „Die Spielstände selbst bleiben unberührt"; bei einem Papierkorb-Eintrag liegen dort
+  die Originale, und der Satz klänge harmloser als die Lage ist. Dort steht deshalb,
+  dass der schnelle Rückweg verschwindet und die Sicherung bleibt.
 - **Die Filterzeile ist jetzt ein `WrapPanel`.** Mit dem dritten Häkchen passte sie nicht
   mehr in jede Fensterbreite und wurde rechts abgeschnitten. Im gerenderten Fenster
   aufgefallen, nicht im Test — Tests prüfen Verhalten, nicht Layout.

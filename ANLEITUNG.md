@@ -255,8 +255,13 @@ zurück, auf Wunsch unter anderem Namen. Wenn sie dich stören, blendet das Häk
 
 ### Papierkorb leeren
 
-Der rote Knopf über der Snapshot-Liste. Er fragt vorher, wie viele Charaktere
-darin liegen und wie viel Platz sie belegen.
+Rechts oben gibt es dafür eine **eigene Gruppe „Papierkorb"** mit dem Knopf
+**Leeren**. Daneben steht, wie viel drin liegt — ist er leer, ist der Knopf grau.
+
+Wichtig: **Leeren betrifft immer den ganzen Papierkorb**, nicht das, was du in
+der Liste markiert hast. Willst du nur einen einzelnen Eintrag endgültig
+loswerden, markierst du ihn in der Liste und nimmst **Löschen** in der Gruppe
+daneben.
 
 **Es wird nie von selbst aufgeräumt** — es gibt keine Altersgrenze und kein
 automatisches Leeren. Und auch nach dem Leeren sind die Charaktere nicht
