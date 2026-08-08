@@ -16,7 +16,8 @@ foreach ($a in $ast.FindAll({param($n) $n -is [System.Management.Automation.Lang
   # $RestoreXaml ohne script:-Praefix, damit der Dialog fuer die Pruefung der
   # Live-Namenspruefung wirklich gebaut werden kann - ohne ihn anzuzeigen.
   if ($a.Left.Extent.Text -match '^\$script:(ExcludedExtensions|DefaultClassNames|AppName|AppVersion|TextsEn)$' -or
-      $a.Left.Extent.Text -eq '$RestoreXaml') { Invoke-Expression $a.Extent.Text }
+      $a.Left.Extent.Text -eq '$RestoreXaml' -or
+      $a.Left.Extent.Text -eq '$NameDialogXaml') { Invoke-Expression $a.Extent.Text }
 }
 foreach ($f in $ast.FindAll({param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]}, $false)) {
   Invoke-Expression $f.Extent.Text
@@ -225,6 +226,17 @@ Check "sperrende Zusatzpruefung"   (-not $okB.IsEnabled)
 $boxB.Text = 'Anders'
 Check "danach wieder frei"         ($okB.IsEnabled)
 
+# Der Umbenennen/Duplizieren-Dialog holt seine Bausteine ueber FindName. Ein
+# Tippfehler im XAML faellt sonst erst beim Klicken auf - dann steht $null da.
+$dlgN = ConvertFrom-Xaml $NameDialogXaml
+foreach ($n in 'TxtInfo','TxtName','TxtNameError','TxtNameHint','TxtActionHint','BtnOk','BtnCancel') {
+  Check "NameDialog kennt $n" ($null -ne $dlgN.FindName($n))
+}
+# Die Live-Pruefung muss sich auch an dieses Fenster haengen lassen.
+Register-NameCheck -Box $dlgN.FindName('TxtName') -ErrBox $dlgN.FindName('TxtNameError') -Ok $dlgN.FindName('BtnOk')
+$dlgN.FindName('TxtName').Text = 'Held9'
+Check "NameDialog sperrt bei Ziffer" (-not $dlgN.FindName('BtnOk').IsEnabled)
+
 "--- Snapshot loeschen ---"
 $zp = Join-Path $backup $full.pfad
 Remove-Snapshot $full
@@ -429,6 +441,48 @@ $script:FakeD2RRunning = $true
 $snapsVorD = @($script:Index.snapshots).Count
 Check "bei laufendem D2R abgelehnt"     (Umbenennen-Scheitert 'neuerHeld' 'AndersHerum')
 Check "dabei kein Snapshot"             (@($script:Index.snapshots).Count -eq $snapsVorD)
+$script:FakeD2RRunning = $false
+
+"--- Duplizieren ---"
+$snapsVorC = @($script:Index.snapshots).Count
+$stashVorC = [System.IO.File]::ReadAllText($stashPath)
+
+$c = Copy-Character -CharName 'neuerHeld' -NewName 'Zwilling'
+Check "Kopie angelegt"                  (Test-Path (Join-Path $saves 'Zwilling.d2s'))
+Check "Original bleibt stehen"          (Test-Path (Join-Path $saves 'neuerHeld.d2s'))
+Check "4 Dateien geschrieben"           ($c.Files.Count -eq 4) $c.Files.Count
+Check "Begleitdatei mitkopiert"         (Test-Path (Join-Path $saves 'Zwilling.ma0'))
+$ci = Get-D2SInfo (Join-Path $saves 'Zwilling.d2s')
+Check "Kopie intakt (Barbar Lvl 30)"    ($ci.Valid -and $ci.ClassName -eq 'Barbar' -and $ci.Level -eq 30)
+Check "Shared Stash nicht mitkopiert"   ([System.IO.File]::ReadAllText($stashPath) -eq $stashVorC)
+Check "kein Stash unter neuem Namen"    (-not (Test-Path (Join-Path $saves 'Zwilling.d2i')))
+Check "Snapshot angelegt"               (@($script:Index.snapshots).Count -eq ($snapsVorC + 1)) @($script:Index.snapshots).Count
+Check "Snapshot traegt den Quellnamen"  ($c.Snapshot.char -eq 'neuerHeld') $c.Snapshot.char
+Check "Ergebnis nennt Quelle und Kopie" ($c.Source -eq 'neuerHeld' -and $c.Copy -eq 'Zwilling')
+# Die Kopie ist ein eigener Charakter, kein Verweis: das Original darf sich
+# nicht mitaendern, wenn die Kopie angefasst wird.
+New-FakeD2S (Join-Path $saves 'Zwilling.d2s') 105 4 77 0x20
+Check "Original unabhaengig von Kopie"  ((Get-D2SInfo (Join-Path $saves 'neuerHeld.d2s')).Level -eq 30)
+
+"--- Duplizieren: was abgelehnt wird ---"
+$snapsVorCA = @($script:Index.snapshots).Count
+function Duplizieren-Scheitert($alt, $neu) {
+  try { $null = Copy-Character -CharName $alt -NewName $neu; return $false } catch { return $true }
+}
+Check "gleicher Name abgelehnt"         (Duplizieren-Scheitert 'neuerHeld' 'neuerHeld')
+# Der gefaehrliche Fall: fuer Windows ist das dieselbe Datei, die Kopie wuerde
+# das Original ueberschreiben. Beim Umbenennen ist genau das erlaubt.
+Check "nur andere Schreibweise abgelehnt" (Duplizieren-Scheitert 'neuerHeld' 'NEUERHELD')
+Check "Original noch da"                ((Get-D2SInfo (Join-Path $saves 'neuerHeld.d2s')).Level -eq 30)
+Check "belegter Name abgelehnt"         (Duplizieren-Scheitert 'neuerHeld' 'Zwilling')
+Check "ungueltiger Name abgelehnt"      (Duplizieren-Scheitert 'neuerHeld' 'Held9')
+Check "geparkter Name abgelehnt"        (Duplizieren-Scheitert 'neuerHeld' 'Zweiter')
+Check "unbekannte Quelle abgelehnt"     (Duplizieren-Scheitert 'GibtEsNicht' 'Egal')
+Check "kein Snapshot bei Ablehnung"     (@($script:Index.snapshots).Count -eq $snapsVorCA) @($script:Index.snapshots).Count
+
+$script:FakeD2RRunning = $true
+Check "bei laufendem D2R abgelehnt"     (Duplizieren-Scheitert 'neuerHeld' 'SpaeterMal')
+Check "dabei nichts angelegt"           (-not (Test-Path (Join-Path $saves 'SpaeterMal.d2s')))
 $script:FakeD2RRunning = $false
 
 "--- Einzelinstanz ---"

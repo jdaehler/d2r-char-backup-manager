@@ -142,7 +142,7 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 164 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 193 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
 Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
@@ -237,7 +237,7 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 164 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `Test-Sandbox.ps1` | 193 Prüfungen gegen die Sandbox in `_sandbox\` |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
 | `Render-Ansicht.ps1` | Fenster als PNG rendern |
@@ -412,10 +412,12 @@ Drei Aktionen direkt auf der Charakterliste, vom Captain am 06.08.2026 gewünsch
    umbenennen. Kein Eingriff in die Datei, siehe *Warum Umbenennen gefahrlos ist*.
    `Rename-Character` plus `Show-RenameDialog`, Symbolknopf in der neuen Gruppe
    „Charakter". Einzelheiten unter *Umbenennen: was dabei zu beachten war*.
-2. **Duplizieren / Klonen mit Namensangabe.** Dateisatz unter neuem Namen kopieren.
-   Der Pfad existiert im Grunde schon (`Restore-Snapshot` mit abweichendem Namen), der
-   Knopf wäre die Abkürzung: Snapshot anlegen, sofort unter neuem Namen zurückschreiben.
-   Der Shared Stash wird **nicht** mitkopiert — er gehört allen Charakteren gemeinsam.
+2. **Duplizieren — erledigt am 08.08.2026.** Dateisatz unter neuem Namen kopieren.
+   Genau wie vorgesehen gebaut: `Copy-Character` legt einen Snapshot an und schreibt
+   ihn sofort mit `Restore-Snapshot -TargetName` zurück. Damit ist die Sicherung nicht
+   Beiwerk, sondern der Mechanismus selbst, und es gibt keinen zweiten Kopierpfad neben
+   dem längst erprobten. Der Shared Stash wird **nicht** mitkopiert — er gehört allen
+   Charakteren gemeinsam.
 3. **Löschen.** Nur für „soll wirklich weg" — wer den Charakter bloß aus der
    Charakterauswahl haben will, parkt ihn. Zwingender Snapshot davor (wie beim Parken,
    nicht abschaltbar) und Verschieben in einen **eigenen Papierkorb-Ordner** statt hartem
@@ -506,6 +508,24 @@ Charakter, der in der Auswahl fehlt.
 - **Online-Reste bleiben liegen.** `.ctlo`/`.keyo` gehören Battle.net-Charakteren, auch
   wenn sie zufällig denselben Basisnamen tragen. Sie werden nicht mit umbenannt, und ein
   Test hält das fest.
+
+### Duplizieren: der eine Unterschied zum Umbenennen
+
+Beide teilen sich Dialog (`Show-NameDialog` mit `-Mode rename|copy`), Live-Prüfung und
+Kollisionstest. Der Unterschied steckt in einem einzigen Fall, und der ist gefährlich:
+
+**Eine andere Schreibweise reicht beim Duplizieren nicht.** Für Windows ist `NEUERHELD`
+dieselbe Datei wie `neuerHeld` — beim Umbenennen ist das erwünscht (der Sonderfall mit
+dem Zwischennamen oben), beim Duplizieren würde die „Kopie" das Original überschreiben
+und der Charakter wäre weg. `Copy-Character` lehnt deshalb mit `-eq` ab, also ohne
+Rücksicht auf Groß-/Kleinschreibung, und der Dialog sagt es beim Tippen. Ein Test hält
+den Fall fest, samt Prüfung, dass das Original danach unverändert dasteht.
+
+Zwei kleinere Entscheidungen: Das Namensfeld startet beim Duplizieren **leer** statt mit
+dem alten Namen — vorbelegt würde es sofort rot, was nach Fehler aussieht, obwohl man
+noch nichts getan hat. Und `Restore-Snapshot` läuft mit `-SkipSafetyBackup`, weil der
+Zielname unmittelbar davor als frei geprüft wurde: es gibt nichts zu überschreiben und
+damit nichts zu sichern.
 
 **Bewusst abgewogen:** Mit diesen drei Aktionen wird der Backup-Manager wieder ein Stück
 Char-Manager — wovon der Programmname am 03.08.2026 gerade weg wollte. Vertretbar, solange

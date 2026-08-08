@@ -36,7 +36,7 @@ that you can check it yourself.
 
 What that does and does not mean: the design decisions — folders instead of
 archives, a mandatory backup before parking, no automatic cleanup — were made by a
-human who uses the tool on his own characters. The 97 automated checks exist
+human who uses the tool on his own characters. The 193 automated checks exist
 precisely because generated code needs evidence rather than trust, and the risky
 paths were additionally run against a real save folder and confirmed inside the
 game. None of that makes the code correct by decree; it is the reason it can be
@@ -48,6 +48,9 @@ checked at all.
   one piece. Every character backup includes the shared stash.
 - **Restore**, optionally **under a different name** — which creates a copy as a
   new character instead of overwriting the original.
+- **Rename** a character, or **duplicate** it under a new name — both straight from
+  the list, and both take a backup first. Renaming touches file names only; the
+  duplicate is a separate character, and the shared stash is not copied along.
 - **Park** characters: move them out of the D2R character selection without
   deleting them. Useful once the list in the game has grown too long to scroll.
 - **Label** every backup with a name, tags and a note; search and filter by them.
@@ -223,7 +226,7 @@ path.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Sta -File "Test-Sandbox.ps1"
 ```
 
-164 checks covering header parsing, backing up, restoring, renaming, the folder
+193 checks covering header parsing, backing up, restoring, renaming, the folder
 layout, stash behaviour, safety copies, deleting, parking and bringing back, plus
 the live name check in the dialog and the locks that apply while D2R is running.
 They run against a sandbox in `_sandbox\` next to the script — rebuilt from scratch

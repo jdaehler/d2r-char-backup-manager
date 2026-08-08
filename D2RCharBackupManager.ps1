@@ -1041,6 +1041,58 @@ function Rename-Character {
     }
 }
 
+# Kopiert den Dateisatz eines Charakters unter neuem Namen. Der Weg führt über
+# einen Snapshot, der sofort unter dem neuen Namen zurückgeschrieben wird: so ist
+# die Sicherung nicht Beiwerk, sondern der Mechanismus selbst, und es entsteht
+# kein zweiter Kopierpfad neben dem längst erprobten Restore-Snapshot.
+#
+# Der Shared Stash wird nicht mitkopiert - er gehört allen Charakteren gemeinsam
+# und existiert genau einmal. Das Original bleibt unangetastet.
+function Copy-Character {
+    param([string]$CharName, [string]$NewName)
+
+    if (-not $CharName) { throw (T 'Kein Charakter angegeben.') }
+    $NewName = "$NewName".Trim()
+
+    $fehler = Test-D2RName $NewName
+    if ($fehler) { throw $fehler }
+
+    # Anders als beim Umbenennen gibt es hier keinen Sonderfall für die
+    # Schreibweise: für Windows wäre "jdbarb" dieselbe Datei wie "jdBarb", die
+    # Kopie überschriebe also das Original. `-eq` vergleicht ohne Rücksicht auf
+    # Groß-/Kleinschreibung und fängt genau das ab.
+    if ($NewName -eq $CharName) {
+        throw (T 'Die Kopie braucht einen anderen Namen als das Original - auch eine andere Schreibweise reicht Windows nicht.')
+    }
+
+    if (Test-D2RRunning) { throw (T 'D2R läuft. Zum Duplizieren muss das Spiel beendet sein.') }
+
+    $kol = Get-NameKollision $NewName
+    switch ($kol.Kind) {
+        'active' { throw ((T 'Es gibt bereits einen Charakter namens {0}.') -f $NewName) }
+        'parked' { throw ((T 'Im Projekt {0} ist bereits ein Charakter namens {1} geparkt.') -f $kol.Project, $NewName) }
+    }
+
+    $dateien = @(Get-CharacterFiles $CharName | Where-Object { $_.Extension.ToLowerInvariant() -ne '.d2i' })
+    if ($dateien.Count -eq 0) { throw ((T 'Zu diesem Charakter wurden keine Dateien gefunden:') + " $CharName") }
+
+    $snap = New-Snapshot -Kind char -CharName $CharName `
+                         -Label (T 'Automatisch vor dem Duplizieren') -Tags @('auto','dupliziert') -Automatic
+    if (-not $snap) { throw (T 'Die Sicherung vor dem Duplizieren ist fehlgeschlagen - es wurde nichts kopiert.') }
+
+    # SkipSafetyBackup: Der Zielname ist eben nachweislich frei, es gibt also
+    # nichts zu überschreiben und damit nichts zu sichern.
+    $geschrieben = @(Restore-Snapshot -Snapshot $snap -TargetName $NewName -SkipSafetyBackup)
+
+    [pscustomobject]@{
+        Source           = $CharName
+        Copy             = $NewName
+        Files            = @($geschrieben)
+        Snapshot         = $snap
+        D2RStartedDuring = (Test-D2RRunning)
+    }
+}
+
 function Move-CharacterToProject {
     param([string]$CharName, [string]$Project)
 
@@ -1413,6 +1465,8 @@ $MainXaml = @'
             <WrapPanel Orientation="Horizontal">
               <Button x:Name="BtnRename" Style="{StaticResource IconButton}" Content="&#xE8AC;" Margin="0,0,6,4"
                       ToolTip="Benennt den markierten Charakter um. Alle seine Dateien werden mit umbenannt, vorher wird automatisch gesichert. Level und Ausrüstung bleiben unberührt - der Name steht nur im Dateinamen."/>
+              <Button x:Name="BtnCopy" Style="{StaticResource IconButton}" Content="&#xE8C8;" Margin="0,0,6,4"
+                      ToolTip="Legt eine Kopie des markierten Charakters unter neuem Namen an. Das Original bleibt stehen, der Shared Stash wird nicht mitkopiert."/>
             </WrapPanel>
           </GroupBox>
         </WrapPanel>
@@ -1562,7 +1616,10 @@ $RestoreXaml = @'
 </Window>
 '@
 
-$RenameXaml = @'
+# Ein Fenster für Umbenennen und Duplizieren. Beide fragen dasselbe ab: einen
+# neuen Namen, live geprüft. Was sich unterscheidet - Titel, Knopfbeschriftung
+# und der Satz, der die Folgen beschreibt - setzt Show-NameDialog.
+$NameDialogXaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Charakter umbenennen" Height="330" Width="520"
@@ -1577,8 +1634,7 @@ $RenameXaml = @'
     <TextBlock x:Name="TxtNameHint" TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,12"
                Text="Erlaubt sind 2 bis 15 Buchstaben, dazu höchstens ein Unterstrich oder Bindestrich in der Mitte. Ziffern und Leerzeichen lässt D2R nicht zu."/>
 
-    <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,12"
-               Text="Vorher wird automatisch gesichert. Der Name steht nur im Dateinamen - in die Spielstanddatei selbst wird nicht eingegriffen, Level, Ausrüstung und Fortschritt bleiben unberührt."/>
+    <TextBlock x:Name="TxtActionHint" TextWrapping="Wrap" FontSize="11" Foreground="#666" Margin="0,0,0,12"/>
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
       <Button x:Name="BtnOk"     Width="120" Height="30" Margin="0,0,8,0" IsDefault="True">Umbenennen</Button>
@@ -2000,6 +2056,23 @@ $script:TextsEn = @{
     'Umbenennen abgebrochen.' = 'Rename cancelled.'
     "'{0}' heißt jetzt '{1}' - {2} Datei(en) umbenannt, vorher gesichert." = "'{0}' is now called '{1}' - {2} file(s) renamed, backed up beforehand."
     'D2R wurde während des Umbenennens gestartet. Die Dateien sind vollständig umbenannt, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while renaming. The files are fully renamed, but please check in the game that everything is right.'
+
+    # Duplizieren
+    'Charakter duplizieren' = 'Duplicate character'
+    'Duplizieren' = 'Duplicate'
+    'Legt eine Kopie des markierten Charakters unter neuem Namen an. Das Original bleibt stehen, der Shared Stash wird nicht mitkopiert.' = 'Creates a copy of the selected character under a new name. The original stays as it is, and the shared stash is not copied along.'
+    "Charakter '{0}' unter neuem Namen kopieren ({1}, Level {2})." = "Copy character '{0}' under a new name ({1}, level {2})."
+    'Das Original bleibt unverändert stehen. Der Shared Stash wird nicht mitkopiert - er gehört allen Charakteren gemeinsam.' = 'The original stays untouched. The shared stash is not copied along - it belongs to all characters at once.'
+    'Die Kopie braucht einen anderen Namen als das Original - auch eine andere Schreibweise reicht Windows nicht.' = 'The copy needs a different name than the original - a different capitalisation is not enough for Windows.'
+    'D2R läuft. Zum Duplizieren muss das Spiel beendet sein.' = 'D2R is running. The game must be closed before duplicating.'
+    'D2R läuft gerade. Zum Duplizieren muss das Spiel beendet sein.' = 'D2R is currently running. The game must be closed before duplicating.'
+    'Automatisch vor dem Duplizieren' = 'Automatic, before duplicating'
+    'Die Sicherung vor dem Duplizieren ist fehlgeschlagen - es wurde nichts kopiert.' = 'The backup before duplicating failed - nothing was copied.'
+    'Bitte links genau einen Charakter auswählen. Kopiert wird immer einer nach dem anderen.' = 'Please select exactly one character on the left. Copying is done one at a time.'
+    'Dieser Charakter ist geparkt. Zum Duplizieren muss er erst zurückgeholt werden.' = 'This character is parked. Bring it back before duplicating.'
+    'Duplizieren abgebrochen.' = 'Duplicating cancelled.'
+    "Kopie von '{0}' liegt als '{1}' bereit - {2} Datei(en), Original unverändert." = "Copy of '{0}' is ready as '{1}' - {2} file(s), original unchanged."
+    'D2R wurde während des Duplizierens gestartet. Die Kopie ist vollständig, aber prüfe im Spiel, ob alles stimmt.' = 'D2R was started while duplicating. The copy is complete, but please check in the game that everything is right.'
 }
 
 function T {
@@ -2676,20 +2749,41 @@ function Show-RestoreDialog {
     $null
 }
 
-function Show-RenameDialog {
-    param([object]$Row)
+# $Mode ist 'rename' oder 'copy'. Der Unterschied ist klein, aber wichtig: beim
+# Umbenennen darf man die Schreibweise des eigenen Namens ändern, beim
+# Duplizieren nicht - eine Kopie, die sich nur in der Schreibweise
+# unterscheidet, wäre für Windows dieselbe Datei und überschriebe das Original.
+function Show-NameDialog {
+    param([object]$Row, [ValidateSet('rename','copy')][string]$Mode = 'rename')
 
-    $dlg = ConvertFrom-Xaml $RenameXaml
+    $dlg = ConvertFrom-Xaml $NameDialogXaml
     $dlg.Owner = $win
     $txtInfo  = $dlg.FindName('TxtInfo')
     $txtName  = $dlg.FindName('TxtName')
     $txtNameE = $dlg.FindName('TxtNameError')
+    $txtHint  = $dlg.FindName('TxtActionHint')
     $btnOk    = $dlg.FindName('BtnOk')
 
-    $alt = $Row.Name
-    $txtInfo.Text = ((T "Charakter '{0}' umbenennen ({1}, Level {2}).") -f $alt, $Row.ClassName, $Row.Level)
-    $txtName.Text = $alt
-    $txtName.SelectAll()
+    $alt   = $Row.Name
+    $istKopie = ($Mode -eq 'copy')
+
+    if ($istKopie) {
+        $dlg.Title      = T 'Charakter duplizieren'
+        $btnOk.Content  = T 'Duplizieren'
+        $txtInfo.Text   = ((T "Charakter '{0}' unter neuem Namen kopieren ({1}, Level {2}).") -f $alt, $Row.ClassName, $Row.Level)
+        $txtHint.Text   = T 'Das Original bleibt unverändert stehen. Der Shared Stash wird nicht mitkopiert - er gehört allen Charakteren gemeinsam.'
+        # Vorbelegung leer lassen: beim Duplizieren ist der alte Name nie die
+        # Antwort, und ein vorbelegtes Feld, das sofort rot wird, sieht nach
+        # Fehler aus, obwohl man noch gar nichts getan hat.
+        $txtName.Text = ''
+    } else {
+        $dlg.Title      = T 'Charakter umbenennen'
+        $btnOk.Content  = T 'Umbenennen'
+        $txtInfo.Text   = ((T "Charakter '{0}' umbenennen ({1}, Level {2}).") -f $alt, $Row.ClassName, $Row.Level)
+        $txtHint.Text   = T 'Vorher wird automatisch gesichert. Der Name steht nur im Dateinamen - in die Spielstanddatei selbst wird nicht eingegriffen, Level, Ausrüstung und Fortschritt bleiben unberührt.'
+        $txtName.Text = $alt
+        $txtName.SelectAll()
+    }
     $txtName.Focus() | Out-Null
 
     # Alles, was den Knopf sperrt, läuft durch diese eine Prüfung - auch das
@@ -2697,14 +2791,20 @@ function Show-RenameDialog {
     # sie wieder auf. So gewinnt sie immer, und wer D2R bei offenem Dialog
     # beendet, bekommt den Knopf beim nächsten Tastendruck von selbst zurück.
     #
-    # Die Kollision sperrt hier hart: einen vorhandenen Charakter beim Umbenennen
-    # zu überschreiben ergibt keinen Sinn, das wäre nur ein Weg, ihn zu verlieren.
+    # Die Kollision sperrt hart: einen vorhandenen Charakter zu überschreiben
+    # ergibt hier keinen Sinn, das wäre nur ein Weg, ihn zu verlieren.
     Register-NameCheck -Box $txtName -ErrBox $txtNameE -Ok $btnOk -ExtraBlocks $true -Extra {
         param($n)
-        if (Test-D2RRunning) { return (T 'D2R läuft gerade. Zum Umbenennen muss das Spiel beendet sein.') }
-        # Gleicher Name in anderer Schreibweise ist erlaubt - das ist keine
-        # Kollision mit einem fremden Charakter, sondern mit sich selbst.
+        if (Test-D2RRunning) {
+            return $(if ($istKopie) { T 'D2R läuft gerade. Zum Duplizieren muss das Spiel beendet sein.' }
+                     else           { T 'D2R läuft gerade. Zum Umbenennen muss das Spiel beendet sein.' })
+        }
         if ($n -eq $alt) {
+            # Beim Umbenennen ist eine andere Schreibweise des eigenen Namens
+            # erlaubt - das ist keine Kollision mit einem fremden Charakter,
+            # sondern mit sich selbst. Beim Duplizieren wäre genau das der Fall,
+            # in dem die Kopie das Original überschriebe.
+            if ($istKopie) { return (T 'Die Kopie braucht einen anderen Namen als das Original - auch eine andere Schreibweise reicht Windows nicht.') }
             if ($n -ceq $alt) { return (T 'Das ist der bisherige Name.') }
             return ''
         }
@@ -2958,7 +3058,7 @@ $win.FindName('BtnRename').Add_Click({
         return
     }
 
-    $neu = Show-RenameDialog -Row $row
+    $neu = Show-NameDialog -Row $row -Mode rename
     if (-not $neu) { Set-Status (T 'Umbenennen abgebrochen.'); return }
 
     [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
@@ -2979,6 +3079,48 @@ $win.FindName('BtnRename').Add_Click({
     if ($erg.D2RStartedDuring) {
         [void][System.Windows.MessageBox]::Show(
             (T 'D2R wurde während des Umbenennens gestartet. Die Dateien sind vollständig umbenannt, aber prüfe im Spiel, ob alles stimmt.'),
+            $script:AppName, 'OK', 'Warning')
+    }
+})
+
+$win.FindName('BtnCopy').Add_Click({
+    $rows = @(Get-SelectedCharRows)
+    if ($rows.Count -ne 1) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Bitte links genau einen Charakter auswählen. Kopiert wird immer einer nach dem anderen.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $row = $rows[0]
+    if ($row.Parked) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'Dieser Charakter ist geparkt. Zum Duplizieren muss er erst zurückgeholt werden.'),
+            $script:AppName, 'OK', 'Information')
+        return
+    }
+
+    $neu = Show-NameDialog -Row $row -Mode copy
+    if (-not $neu) { Set-Status (T 'Duplizieren abgebrochen.'); return }
+
+    [System.Windows.Input.Mouse]::OverrideCursor = [System.Windows.Input.Cursors]::Wait
+    try {
+        $erg = Copy-Character -CharName $row.Name -NewName $neu
+    } catch {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+        [void][System.Windows.MessageBox]::Show($_.Exception.Message, $script:AppName, 'OK', 'Warning')
+        Update-All
+        return
+    } finally {
+        [System.Windows.Input.Mouse]::OverrideCursor = $null
+    }
+
+    Update-All
+    Set-Status ((T "Kopie von '{0}' liegt als '{1}' bereit - {2} Datei(en), Original unverändert.") -f $erg.Source, $erg.Copy, $erg.Files.Count)
+
+    if ($erg.D2RStartedDuring) {
+        [void][System.Windows.MessageBox]::Show(
+            (T 'D2R wurde während des Duplizierens gestartet. Die Kopie ist vollständig, aber prüfe im Spiel, ob alles stimmt.'),
             $script:AppName, 'OK', 'Warning')
     }
 })
