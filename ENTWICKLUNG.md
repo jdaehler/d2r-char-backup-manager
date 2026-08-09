@@ -127,11 +127,20 @@ vom Captain ausgeführt und für gut befunden:
 Damit sind alle drei Aktionen von 1.3 gegen echte Spielstände belegt, nicht nur gegen
 die Sandbox.
 
-**Dabei aufgefallen:** Nach dem Zurückholen bleibt der Papierkorb-Eintrag stehen, der
-Charakter liegt also aktiv *und* im Papierkorb. Das folgt daraus, dass `Restore-Snapshot`
-kopiert statt verschiebt, und ist für Snapshots richtig — beim Windows-Papierkorb
-verschwindet der Eintrag beim Wiederherstellen dagegen. Offen, ob das hier auch so sein
-soll; siehe *Offene Punkte*.
+**Dabei aufgefallen und mit 1.31 behoben:** Nach dem Zurückholen blieb der
+Papierkorb-Eintrag stehen, der Charakter lag also aktiv *und* im Papierkorb. Das folgte
+daraus, dass `Restore-Snapshot` kopiert statt verschiebt.
+
+Der Captain schlug erst einen Schalter in den Einstellungen vor und entschied sich dann
+gegen ihn: Der Zustand war schlicht widersprüchlich — derselbe Charakter links als
+aktiv, rechts als „Gelöscht" —, es geht nichts verloren, weil die Sicherung von vor dem
+Löschen ohnehin bleibt, und das Programm ist bewusst schalterarm (dieselbe Begründung
+wie beim verworfenen Schalter für die Online-Dateien).
+
+`Restore-Snapshot` räumt den Eintrag jetzt selbst weg. **Eine Feinheit dabei:** nur bei
+Rückkehr unter dem *eigenen* Namen. Wer unter abweichendem Namen zurückholt, legt eine
+Kopie an und will den gelöschten Charakter erkennbar behalten — dann bleibt der Eintrag
+stehen. Beide Fälle sind als Test festgehalten.
 
 ### Online-Charaktere bleiben draußen
 
@@ -169,7 +178,7 @@ löscht nichts, deshalb bleiben die Online-Dateien im Spielstand-Ordner künftig
 unberührt — vorher hätte das Zurückspielen eines kompletten Ordners die Belegung
 sämtlicher Online-Charaktere auf den Stand von damals zurückgedreht.
 
-`Test-Sandbox.ps1` deckt 227 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
+`Test-Sandbox.ps1` deckt 232 Prüfungen ab (Header-Parsing, Sichern, Wiederherstellen,
 Umbenennen, Ordner-Ablage, `_INFO.txt`, Stash-Verhalten, Sicherheitskopie, Löschen,
 Index-Neuladen, Parken, Zurückholen, Projektnamen, Namenskollisionen, Ausschluss der
 Online-Dateien, Live-Namensprüfung im Dialog, D2R-Sperren) und läuft grün unter
@@ -284,7 +293,7 @@ offen ist. Genau dann will man aber oft rendern.
 | `ENTWICKLUNG.md` | diese Datei, nur für die Pflege |
 | `CHANGELOG.md` | Änderungen je Version, englisch |
 | `screenshots\` | Bilder fürs README, aus **erfundenen** Charakteren erzeugt |
-| `Test-Sandbox.ps1` | 227 Prüfungen gegen die Sandbox in `_sandbox\` |
+| `Test-Sandbox.ps1` | 232 Prüfungen gegen die Sandbox in `_sandbox\` |
 | `Pruefe-Oberflaeche.ps1` | 21 Prüfungen der Fenster-Verdrahtung (Kontextmenü, Knopfbeschriftungen, Filter) |
 | `_sandbox\` | Spielwiese der Tests, wird bei jedem Lauf neu gebaut, nicht im Repo |
 | `Build-Deploy.ps1` | baut `_deploy\D2R-Char-Backup-Manager-<Version>.zip` |
@@ -448,15 +457,8 @@ sie als „Klasse *n* (?)" und lassen sich in `config.json` unter `ClassNames` n
    und `SortKey`.
 4. **Kosmetik.** Die Griffpunkte und der Überlaufpfeil der Werkzeugleiste sind
    WPF-Standardbeiwerk und ließen sich ausblenden.
-5. **Papierkorb-Eintrag bleibt nach dem Zurückholen stehen** (aufgefallen beim echten
-   Test am 08.08.2026). Der Charakter liegt danach aktiv im Spielstand-Ordner *und*
-   weiterhin im Papierkorb, weil `Restore-Snapshot` kopiert statt verschiebt. Beim
-   Windows-Papierkorb verschwindet der Eintrag beim Wiederherstellen — hier bleibt er,
-   wie jeder andere Sicherungseintrag auch. Beides vertretbar: Bleiben heißt, man kann
-   mehrfach und unter verschiedenen Namen zurückholen; Verschwinden wäre aufgeräumter
-   und näher an der Erwartung, die das Wort „Papierkorb" weckt. **Nicht ohne Ansage des
-   Captains ändern** — automatisches Wegräumen ist genau das, was dieses Programm sonst
-   überall vermeidet.
+*(Punkt 5, „Papierkorb-Eintrag bleibt nach dem Zurückholen stehen", ist mit 1.31
+erledigt — siehe unten.)*
 
 Erledigt: der Wiederherstellen-Pfad ist am 04.08.2026 echt gelaufen und im Spiel bestätigt
 (siehe *Stand*) — bis dahin der größte blinde Fleck des Programms.

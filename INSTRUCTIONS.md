@@ -246,9 +246,14 @@ backup. There are two nets under you:
 This is the **program's own recycle bin**, not the Windows one. It sits next to
 your backups as `_Papierkorb\`, with one subfolder per deletion.
 
-Deleted characters appear in the snapshot list on the right with the type
-**Recycle bin**. From there you bring them back the ordinary way via
-**Restore…**, under a different name if you like.
+Deleted characters appear in the list on the right with the type **Recycle bin**.
+From there you bring them back the ordinary way via **Restore…**, under a
+different name if you like.
+
+Bringing a character back **under its own name** clears the recycle bin entry along
+the way — it has served its purpose, the files are back in the save folder. The
+backup made before the deletion remains. Choosing **a different name** instead
+creates a copy, and the deleted character stays in the bin.
 
 There is a filter for it at the far right above the list:
 

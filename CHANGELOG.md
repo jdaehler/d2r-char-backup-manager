@@ -3,6 +3,17 @@
 Newest entry first. The version number lives in `$script:AppVersion` and is shown
 in the window title and on the right of the status bar.
 
+## 1.31 — 2026-08-08
+
+- **Bringing a deleted character back now clears its recycle bin entry.** Until now
+  the entry stayed behind, so the same character stood in one list as active and in
+  the other as "Deleted", while its folder kept taking up space. The way back has
+  been *used*, not thrown away — the backup made before the deletion remains either
+  way, so nothing is lost.
+- **Except when you bring it back under a different name.** That creates a copy, and
+  the deleted character is meant to stay recognisably in the bin. Then the entry
+  remains.
+
 ## 1.3 — 2026-08-08
 
 Three actions straight on the character list: **rename**, **duplicate** and

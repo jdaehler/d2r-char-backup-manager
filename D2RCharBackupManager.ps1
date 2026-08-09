@@ -29,7 +29,7 @@ foreach ($asm in 'PresentationFramework','PresentationCore','WindowsBase','Syste
 $script:AppName    = 'D2R Char Backup Manager'
 # Versionsnummer: steht im Fenstertitel und in der Statuszeile beim Start.
 # Bei Änderungen mitpflegen, die Liste dazu steht im README unter "Versionen".
-$script:AppVersion = '1.3'
+$script:AppVersion = '1.31'
 
 # Fassung des Haftungshinweises. Wird die Nummer erhöht, muss jeder Nutzer den
 # Hinweis erneut bestätigen - dafür ist sie da. Nur erhöhen, wenn sich der Text
@@ -822,6 +822,20 @@ function Restore-Snapshot {
                     $restored += $f.Name
                 }
             }
+        }
+
+        # Ein zurückgeholter Papierkorb-Eintrag hat seinen Zweck erfüllt: die
+        # Dateien liegen wieder im Spielstand-Ordner. Bliebe er stehen, stünde
+        # derselbe Charakter links als aktiv und rechts als "Gelöscht", und der
+        # Ordner belegte weiter Platz. Der Rückweg ist damit nicht weg, sondern
+        # benutzt - die Sicherung von vor dem Löschen bleibt ohnehin bestehen.
+        #
+        # Nur bei Rückkehr unter dem eigenen Namen: wer unter abweichendem Namen
+        # zurückholt, legt eine Kopie an und will den gelöschten Charakter
+        # erkennbar behalten. Dann bleibt der Eintrag stehen.
+        if ($Snapshot.kind -eq 'trash' -and $restored.Count -gt 0 -and
+            (-not $TargetName -or $TargetName -eq $Snapshot.char)) {
+            Remove-Snapshot $Snapshot
         }
         return @($restored)
     }

@@ -517,17 +517,27 @@ Check "Sicherung ist eine echte Kopie"  (Test-Path (Join-Path (Join-Path $backup
 Check "Level im Eintrag uebernommen"    ($l.Trash.level -eq 55) $l.Trash.level
 
 "--- Geloeschten zurueckholen ---"
-# Der Papierkorb-Eintrag hat denselben Aufbau wie ein Snapshot, deshalb muss der
-# gewoehnliche Rueckweg ihn ohne Sonderbehandlung zurueckholen.
+# Zuerst unter ABWEICHENDEM Namen: das legt eine Kopie an, der geloeschte
+# Charakter soll erkennbar im Papierkorb bleiben.
+$zurueck2 = @(Restore-Snapshot -Snapshot $l.Trash -TargetName 'Wiedergaenger' -SkipSafetyBackup)
+Check "auch unter neuem Namen"          (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
+Check "neuer Name intakt"               ((Get-D2SInfo (Join-Path $saves 'Wiedergaenger.d2s')).Level -eq 55)
+Check "Eintrag bleibt bei neuem Namen"  (@($script:Index.snapshots | Where-Object { $_.id -eq $l.Trash.id }).Count -eq 1)
+Check "Papierkorb-Ordner bleibt"        (Test-Path $trashOrdner)
+
+# Dann unter dem eigenen Namen: der Papierkorb-Eintrag hat seinen Zweck erfuellt
+# und wird mit weggeraeumt. Sonst staende derselbe Charakter aktiv in der einen
+# und als "Geloescht" in der anderen Liste.
 $zurueck = @(Restore-Snapshot -Snapshot $l.Trash -SkipSafetyBackup)
 Check "wieder im Spielstand-Ordner"     (Test-Path (Join-Path $saves 'Opferlamm.d2s'))
 Check "alle 4 Dateien zurueck"          ($zurueck.Count -eq 4) $zurueck.Count
 $li = Get-D2SInfo (Join-Path $saves 'Opferlamm.d2s')
 Check "Datei intakt (Paladin Lvl 55)"   ($li.Valid -and $li.ClassName -eq 'Paladin' -and $li.Level -eq 55)
-# Und unter anderem Namen, wie bei jedem anderen Eintrag auch.
-$zurueck2 = @(Restore-Snapshot -Snapshot $l.Trash -TargetName 'Wiedergaenger' -SkipSafetyBackup)
-Check "auch unter neuem Namen"          (Test-Path (Join-Path $saves 'Wiedergaenger.d2s'))
-Check "neuer Name intakt"               ((Get-D2SInfo (Join-Path $saves 'Wiedergaenger.d2s')).Level -eq 55)
+Check "Papierkorb-Eintrag ist weg"      (@($script:Index.snapshots | Where-Object { $_.id -eq $l.Trash.id }).Count -eq 0)
+Check "Papierkorb-Ordner geraeumt"      (-not (Test-Path $trashOrdner))
+# Der eigentliche Punkt: der Rueckweg wurde benutzt, nicht weggeworfen. Die
+# Sicherung von vor dem Loeschen muss unangetastet bleiben.
+Check "Sicherung bleibt bestehen"       (Test-Path (Join-Path (Join-Path $backup $l.Snapshot.pfad) 'Opferlamm.d2s'))
 
 "--- Loeschen: was abgelehnt wird ---"
 $snapsVorLA = @($script:Index.snapshots).Count
@@ -553,14 +563,17 @@ Check "kein Snapshot bei Ablehnung"     (@($script:Index.snapshots).Count -eq $s
 "--- Papierkorb ueber die Liste leeren ---"
 # Es gibt keinen eigenen "Leeren"-Knopf mehr: man filtert die Liste auf
 # Papierkorb, markiert alles und loescht. Genau dieser Weg wird hier geprueft -
-# also Remove-Snapshot auf jedem trash-Eintrag.
-$null = Remove-CharacterToTrash -CharName 'Wiedergaenger'
+# also Remove-Snapshot auf jedem trash-Eintrag. Zwei Eintraege, damit auch das
+# Leeren mehrerer auf einmal drin ist.
+$t1 = Remove-CharacterToTrash -CharName 'Wiedergaenger'
+$t2 = Remove-CharacterToTrash -CharName 'Opferlamm'
 $imKorb = @($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' })
-Check "zwei Eintraege im Papierkorb"    ($imKorb.Count -ge 2) $imKorb.Count
+Check "zwei Eintraege im Papierkorb"    ($imKorb.Count -eq 2) $imKorb.Count
 
 $sicherungen = @($script:Index.snapshots | Where-Object { $_.kind -eq 'char' }).Count
 foreach ($e in $imKorb) { Remove-Snapshot $e }
-Check "Papierkorb-Ordner verschwunden"  (-not (Test-Path $trashOrdner))
+Check "beide Ordner verschwunden"       (-not (Test-Path (Join-Path $backup $t1.Trash.pfad)) -and
+                                         -not (Test-Path (Join-Path $backup $t2.Trash.pfad)))
 Check "_Papierkorb-Wurzel mit weg"      (-not (Test-Path (Join-Path $backup '_Papierkorb')))
 Check "keine trash-Eintraege mehr"      (@($script:Index.snapshots | Where-Object { $_.kind -eq 'trash' }).Count -eq 0)
 # Der eigentliche Punkt: endgueltig ist nur der schnelle Rueckweg, nicht der

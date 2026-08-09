@@ -248,9 +248,15 @@ ist und keine Sicherung anlegt. Es liegen zwei Netze unter dir:
 Das ist ein **eigener Papierkorb des Programms**, nicht der von Windows. Er liegt
 als `_Papierkorb\` bei deinen Sicherungen, mit einem Unterordner je Löschung.
 
-Gelöschte Charaktere erscheinen in der Snapshot-Liste rechts mit dem Typ
-**Papierkorb**. Von dort holst du sie ganz normal über **Wiederherstellen…**
-zurück, auf Wunsch unter anderem Namen.
+Gelöschte Charaktere erscheinen in der Liste rechts mit dem Typ **Papierkorb**.
+Von dort holst du sie ganz normal über **Wiederherstellen…** zurück, auf Wunsch
+unter anderem Namen.
+
+Holst du einen Charakter **unter seinem eigenen Namen** zurück, verschwindet der
+Papierkorb-Eintrag dabei — er hat seinen Zweck erfüllt, die Dateien liegen ja
+wieder im Spielstand-Ordner. Die Sicherung von vor dem Löschen bleibt bestehen.
+Nimmst du dagegen **einen anderen Namen**, entsteht eine Kopie, und der gelöschte
+Charakter bleibt im Papierkorb stehen.
 
 Über der Liste steht ganz rechts ein Filter dafür:
 
