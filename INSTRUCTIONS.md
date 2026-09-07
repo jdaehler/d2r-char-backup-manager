@@ -439,7 +439,7 @@ Because it is a PowerShell script that copies files — malicious scripts use th
 same pattern. You cannot look harmless to a heuristic and still do the work.
 
 Better than any promise: **read it.** It is a single plain text file. Search for
-`Remove-Item` and you will find all five places where anything is deleted, or
+`Remove-Item` and you will find all six places where anything is deleted, or
 `Copy-Item` and `Move-Item` for every place files are moved.
 
 The program carries no digital signature, so Windows may warn about an unknown

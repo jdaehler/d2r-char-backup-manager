@@ -545,7 +545,7 @@ im Explorer sichtbar, auch ohne das Programm zurückzukopieren.
   dass eine Suche nach `Remove-Item` *jede* Stelle findet, an der dieses Programm etwas
   löscht. Eine Löschung, die durchs Raster fiele, wäre genau die eine, die niemand
   prüfen kann. Beim Ändern dieser Stelle also nicht auf .NET-Methoden ausweichen — und
-  die Zahl im README mitzählen (Stand 1.3: acht Stellen).
+  die Zahl im README mitzählen (Stand 1.31: sechs Stellen).
 - **Kein eigener Knopf zum Leeren — die Markierung entscheidet.** Das hat zwei Anläufe
   gebraucht. Zuerst stand „Leeren" als roter Symbolknopf neben „Löschen": zwei rote
   Knöpfe, sinngemäß derselbe Name, aber verschieden weite Wirkung. Der Captain fragte

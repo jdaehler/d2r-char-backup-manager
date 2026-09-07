@@ -439,7 +439,7 @@ Weil es ein PowerShell-Skript ist, das Dateien kopiert — dasselbe Muster benut
 auch Schadprogramme. Harmlos aussehen *und* die Arbeit tun geht nicht beides.
 
 Was besser hilft als ein Versprechen: **lies es.** Es ist eine einzige Textdatei.
-Suche nach `Remove-Item`, dann findest du alle fünf Stellen, an denen überhaupt
+Suche nach `Remove-Item`, dann findest du alle sechs Stellen, an denen überhaupt
 etwas gelöscht wird, oder nach `Copy-Item` und `Move-Item` für jede Stelle, an der
 Dateien wandern.
 

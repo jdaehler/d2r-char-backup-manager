@@ -3,6 +3,19 @@
 Newest entry first. The version number lives in `$script:AppVersion` and is shown
 in the window title and on the right of the status bar.
 
+## Unreleased
+
+- **Corrected the number of `Remove-Item` places in the documentation.** The
+  claim that a search for `Remove-Item` finds every place where the program
+  deletes something is the core of its "read it yourself" promise — but the
+  number given alongside it was wrong in five places, and wrong in two
+  different ways: the README and ENTWICKLUNG.md said eight, ANLEITUNG.md,
+  INSTRUCTIONS.md and a second spot in the README said five. Counted in
+  `D2RCharBackupManager.ps1` 1.31, it is **six** (lines 889, 896, 900, 1189,
+  1323, 1327). The claim itself still holds: there is no `.Delete(`, no
+  `::Delete`, no `rmdir` and no `del` in the script, so the search really does
+  find all of them. Documentation only, no change to the program.
+
 ## 1.31 — 2026-08-08
 
 - **Bringing a deleted character back now clears its recycle bin entry.** Until now

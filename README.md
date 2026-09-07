@@ -15,7 +15,7 @@ The entire program is **one PowerShell file in plain text**. Nothing is compiled
 nothing is obfuscated, nothing is minified. Before you let it near your save games
 you can read every line it will execute — and you do not need to be a programmer
 for the parts that matter: search the file for `Remove-Item` and you have found all
-eight places where anything is ever deleted. That is not a figure of speech: the
+six places where anything is ever deleted. That is not a figure of speech: the
 program deliberately uses no other way of deleting, so that the search really does
 find every one of them.
 
@@ -196,7 +196,7 @@ Because it is a PowerShell script that copies files, and malicious scripts do th
 same thing. There is no way to look harmless to a heuristic and still do the job.
 
 Better than trusting a promise: **read it.** It is a single plain text file. Search
-for `Remove-Item` and you will find all five places where anything is deleted, or
+for `Remove-Item` and you will find all six places where anything is deleted, or
 `Copy-Item` and `Move-Item` for every place files are moved.
 
 The program carries no code signature, so Windows SmartScreen may warn about an
